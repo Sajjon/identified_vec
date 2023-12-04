@@ -95,21 +95,16 @@ where
         self.index_of_existing(item).is_some()
     }
 
-    fn update_value(
-        &mut self,
-        item: Item,
-        for_key: ID,
-        inserting_at: usize,
-    ) -> IdentifiedVecInsertionResult {
+    fn update_value(&mut self, item: Item, for_key: ID, inserting_at: usize) -> (bool, usize) {
         if let Some(_) = self.order.get(inserting_at) {
-            return IdentifiedVecInsertionResult::already_present(inserting_at);
+            return (false, inserting_at);
         }
         println!("🔮 Not already present: {:?} at index {inserting_at}", item);
         self.order.insert(inserting_at, for_key.clone());
         self.id_to_index_in_order
             .insert(for_key.clone(), inserting_at);
         self.items.insert(for_key, item);
-        return IdentifiedVecInsertionResult::inserted_new(inserting_at);
+        (true, inserting_at)
     }
 
     /// Insert a new member to this array at the specified index, if the array doesn't already contain
@@ -125,41 +120,19 @@ where
     ///   compare operations on the `ID` type, if it implements high-quality hashing. (Insertions need
     ///   to make room in the storage array to add the inserted element.)
     #[inline]
-    pub fn insert(&mut self, item: Item, at: usize) -> IdentifiedVecInsertionResult {
+    pub fn insert(&mut self, item: Item, at: usize) -> (bool, usize) {
         let id = self.id(&item);
         if let Some(existing) = self.index_of_id(&id) {
             println!("🙅 Already present: {:?} at index {existing}", item);
-            return IdentifiedVecInsertionResult::already_present(existing.clone());
+            return (false, existing.clone());
         }
         self.update_value(item, id, at);
-        IdentifiedVecInsertionResult::inserted_new(at)
-    }
-}
-
-#[derive(Debug, Clone, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub struct IdentifiedVecInsertionResult {
-    pub inserted: bool,
-    pub index: usize,
-}
-
-impl IdentifiedVecInsertionResult {
-    pub(crate) fn inserted_new(at: usize) -> Self {
-        Self {
-            inserted: true,
-            index: at,
-        }
-    }
-    pub(crate) fn already_present(at: usize) -> Self {
-        Self {
-            inserted: false,
-            index: at,
-        }
+        (true, at)
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::identified_vec::IdentifiedVecInsertionResult;
 
     use super::{Identifiable, IdentifiedVec, IdentifiedVecOf};
     use rand::Rng;
@@ -177,16 +150,20 @@ mod tests {
                 year_of_birth,
             }
         }
+
         fn alex() -> Self {
             Self::new(1987)
         }
+
         fn klara() -> Self {
             Self::new(1990)
         }
+
         fn stella() -> Self {
             Self::new(2020)
         }
     }
+
     impl Identifiable for User {
         type ID = u16;
         fn id(&self) -> Self::ID {
@@ -201,15 +178,12 @@ mod tests {
     }
 
     #[test]
-    fn insertion() {
+    fn insertion_duplicates_same_index_not_allowed() {
         let mut sut = SUT::new();
         let user = User::alex();
         sut.insert(user, 0);
         assert_eq!(sut.len(), 1);
-        assert_eq!(
-            sut.insert(user, 0),
-            IdentifiedVecInsertionResult::already_present(0)
-        );
+        assert_eq!(sut.insert(user, 0), (false, 0));
         assert_eq!(sut.len(), 1);
     }
 }
