@@ -80,11 +80,16 @@ where
     }
 
     #[cfg(debug_assertions)]
-    pub fn debug(&self) {
-        println!(
+    pub fn debug_str(&self) -> String {
+        format!(
             "order: {:?}\nid_to_index_in_order: {:?}\nitems: {:?}",
             self.order, self.id_to_index_in_order, self.items
-        );
+        )
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn debug(&self) {
+        println!("{}", self.debug_str());
     }
 
     fn id(&self, of: &Item) -> ID {
@@ -104,24 +109,39 @@ where
         self.index_of_existing(item).is_some()
     }
 
-    fn update_value(&mut self, item: Item, for_key: ID, inserting_at: usize) -> (bool, usize) {
-        let maybe_existing = self.order.get(inserting_at).cloned();
-
-        println!("✅ Adding: {:?} at index {inserting_at}", item);
-        self.order.insert(inserting_at, for_key.clone());
-
-        match maybe_existing {
+    fn _offset_indices_of_if_needed(
+        id_to_index_in_order: &mut HashMap<ID, usize>,
+        order: &Vec<ID>,
+        index: usize,
+    ) {
+        match order.get(index).cloned() {
             Some(existing) => {
-                println!(
-                    "🙋‍ Found item at index {inserting_at}, with ID {:?}, will need to move it.",
-                    existing
-                );
-                *self.id_to_index_in_order.get_mut(&existing).expect("order") = inserting_at.add(1)
+                let key = &existing;
+                let current_index = id_to_index_in_order.get(key).expect("duh");
+
+                let new_index = current_index.add(1);
+
+                // RECURSIVE CALL
+                Self::_offset_indices_of_if_needed(id_to_index_in_order, order, new_index);
+                println!("⚡️ Moving ID={:?} to index={}", existing, new_index);
+
+                *id_to_index_in_order.get_mut(key).expect("checked already") = new_index;
             }
             None => {
-                println!("✨ completely new");
+                // println!("✨ Nothing found at index={index}.");
             }
         }
+    }
+    fn offset_indices_if_needed(&mut self, index: usize) {
+        let mut modified = self.id_to_index_in_order.clone();
+        Self::_offset_indices_of_if_needed(&mut modified, &self.order, index);
+        self.id_to_index_in_order = modified;
+    }
+
+    fn update_value(&mut self, item: Item, for_key: ID, inserting_at: usize) -> (bool, usize) {
+        self.offset_indices_if_needed(inserting_at);
+        println!("➕ Adding: {:?} at index {inserting_at}", item);
+        self.order.insert(inserting_at, for_key.clone());
         self.id_to_index_in_order
             .insert(for_key.clone(), inserting_at);
 
@@ -143,16 +163,35 @@ where
     ///   to make room in the storage array to add the inserted element.)
     #[inline]
     pub fn insert(&mut self, item: Item, at: usize) -> (bool, usize) {
+        println!(
+            "\n\n{}\n☑️ START OF INSERT\n📦Arguments:\nitem: {:?}, inserting at:{at}\n🔮State:\n{}\n{}",
+            "=".repeat(60),
+            item,
+            self.debug_str(),
+            "*".repeat(60),
+        );
         let id = self.id(&item);
         if let Some(existing) = self.index_of_id(&id) {
             println!(
                 "❌ Skipped adding: {:?} at index {at}, already present at {existing}",
                 item
             );
-            return (false, existing.clone());
+            let output = (false, existing.clone());
+            println!(
+                "✅ END OF INSERT\noutput: {:?}\n{}\n✅✅✅",
+                output,
+                self.debug_str()
+            );
+            return output;
         }
         self.update_value(item, id, at);
-        (true, at)
+        let output = (true, at);
+        println!(
+            "✅ END OF INSERT\noutput: {:?}\n{}\n✅✅✅",
+            output,
+            self.debug_str()
+        );
+        return output;
     }
 
     fn end_index(&self) -> usize {
@@ -178,6 +217,7 @@ where
 mod tests {
 
     use super::{Identifiable, IdentifiedVec, IdentifiedVecOf};
+    use maplit::hashmap;
     use rand::Rng;
 
     #[derive(Debug, Eq, PartialEq, Clone)]
@@ -199,6 +239,10 @@ mod tests {
             Self::new("Klara")
         }
 
+        fn zelda() -> Self {
+            Self::new("Zelda")
+        }
+
         fn stella() -> Self {
             Self::new("Stella")
         }
@@ -207,7 +251,7 @@ mod tests {
     impl Identifiable for User {
         type ID = String;
         fn id(&self) -> Self::ID {
-            self.name.clone()
+            self.name.clone().to_lowercase()
         }
     }
     type SUT = IdentifiedVecOf<User>;
@@ -247,6 +291,29 @@ mod tests {
         sut.append(klara.clone());
         sut.insert(stella.clone(), 1);
         assert_eq!(sut.to_vec(), vec![&alex, &stella, &klara]);
+    }
+
+    #[test]
+    fn insert_at_0_three_times_order_is_maintained() {
+        let mut sut = SUT::new();
+        let alex = User::alex();
+        let klara: User = User::klara();
+        let stella = User::stella();
+        let zelda = User::zelda();
+        sut.insert(alex.clone(), 0);
+        sut.insert(klara.clone(), 0);
+        sut.insert(zelda.clone(), 0);
+        sut.insert(stella.clone(), 0);
+        assert_eq!(sut.to_vec(), vec![&stella, &zelda, &klara, &alex]);
+        assert_eq!(
+            sut.id_to_index_in_order,
+            hashmap! {
+                "stella".to_string() => 0,
+               "zelda".to_string() => 1,
+               "klara".to_string() => 2,
+               "alex".to_string() => 3,
+            }
+        );
         sut.debug();
     }
 }
