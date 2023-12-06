@@ -226,6 +226,9 @@ mod tests {
     }
     impl User {
         fn new(name: &str) -> Self {
+            if name.is_empty() {
+                panic!("name cannot be empty")
+            }
             Self {
                 name: name.to_string(),
             }
@@ -324,7 +327,7 @@ mod tests {
         sut.debug();
     }
 
-     #[test]
+    #[test]
     fn append_then_insert_at_1_many_times_then_append_order_is_maintained() {
         let mut sut = SUT::new();
         let alex = User::alex();
@@ -346,6 +349,65 @@ mod tests {
                 "zelda".to_string() => 2,
                 "klara".to_string() => 3,
                 "grodan".to_string() => 4,
+            }
+        );
+        sut.debug();
+    }
+
+    #[test]
+    fn identified_vec_first_char_as_id_append_then_insert_at_1_many_times_then_append_order_is_maintained(
+    ) {
+        let mut sut = IdentifiedVec::<char, User>::new_identifying_item(|user| {
+            user.name.to_lowercase().chars().next().unwrap()
+        });
+        let alex = User::alex();
+        let klara: User = User::klara();
+        let stella = User::stella();
+        let zelda = User::zelda();
+        let grodan = User::grodan();
+        sut.append(alex.clone());
+        sut.insert(klara.clone(), 1);
+        sut.insert(zelda.clone(), 1);
+        sut.insert(stella.clone(), 1);
+        sut.append(grodan.clone());
+        assert_eq!(sut.to_vec(), vec![&alex, &stella, &zelda, &klara, &grodan]);
+        assert_eq!(
+            sut.id_to_index_in_order,
+            hashmap! {
+                'a' => 0,
+                's' => 1,
+                'z' => 2,
+                'k' => 3,
+                'g' => 4,
+            }
+        );
+        sut.debug();
+    }
+  
+     #[test]
+    fn identified_vec_last_char_as_id_append_then_insert_at_1_many_times_then_append_order_is_maintained(
+    ) {
+        let mut sut = IdentifiedVec::<char, User>::new_identifying_item(|user| {
+            // N.B. the `rev()`!
+            user.name.to_lowercase().chars().rev().next().unwrap()
+        });
+        let alex = User::alex();
+        let klara: User = User::klara();
+        let stella = User::stella();
+        let zelda = User::zelda();
+        let grodan = User::grodan();
+        sut.append(alex.clone());
+        sut.insert(klara.clone(), 1);
+        sut.insert(zelda.clone(), 1); // should be ignored, 'a' already present ('klara')
+        sut.insert(stella.clone(), 1); // should be ignored, 'a' already present ('klara')
+        sut.append(grodan.clone());
+        assert_eq!(sut.to_vec(), vec![&alex, &klara, &grodan]);
+        assert_eq!(
+            sut.id_to_index_in_order,
+            hashmap! {
+                'x' => 0,
+                'a' => 1,
+                'n' => 2,
             }
         );
         sut.debug();
