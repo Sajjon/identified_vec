@@ -1,9 +1,10 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
+use std::ops::Add;
 
 pub trait Identifiable: Debug {
-    type ID: Eq + Hash + Clone;
+    type ID: Eq + Hash + Clone + Debug;
     fn id(&self) -> Self::ID;
 }
 
@@ -13,7 +14,7 @@ pub trait Identifiable: Debug {
 pub struct IdentifiedVec<ID, Item>
 where
     Item: Debug,
-    ID: Eq + Hash + Clone,
+    ID: Eq + Hash + Clone + Debug,
 {
     /// The holder of the insertion order
     order: Vec<ID>,
@@ -31,7 +32,7 @@ where
 
 impl<ID, Item> IdentifiedVec<ID, Item>
 where
-    ID: Eq + Hash + Clone,
+    ID: Eq + Hash + Clone + Debug,
     Item: Debug,
 {
     /// Constructs a new, empty `IdentifiedVec<ID, Item>` with the specified
@@ -66,7 +67,7 @@ pub type IdentifiedVecOf<Item> = IdentifiedVec<<Item as Identifiable>::ID, Item>
 
 impl<ID, Item> IdentifiedVec<ID, Item>
 where
-    ID: Eq + Hash + Clone,
+    ID: Eq + Hash + Clone + Debug,
     Item: Debug,
 {
     /// Returns the number of elements in the `IdentifiedVec`, also referred to as its 'length'.
@@ -76,6 +77,14 @@ where
             assert_eq!(self.id_to_index_in_order.len(), self.items.len());
         }
         self.order.len()
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn debug(&self) {
+        println!(
+            "order: {:?}\nid_to_index_in_order: {:?}\nitems: {:?}",
+            self.order, self.id_to_index_in_order, self.items
+        );
     }
 
     fn id(&self, of: &Item) -> ID {
@@ -96,13 +105,26 @@ where
     }
 
     fn update_value(&mut self, item: Item, for_key: ID, inserting_at: usize) -> (bool, usize) {
-        if let Some(_) = self.order.get(inserting_at) {
-            return (false, inserting_at);
-        }
-        println!("🔮 Not already present: {:?} at index {inserting_at}", item);
+        let maybe_existing = self.order.get(inserting_at).cloned();
+
+        println!("✅ Adding: {:?} at index {inserting_at}", item);
         self.order.insert(inserting_at, for_key.clone());
+
+        match maybe_existing {
+            Some(existing) => {
+                println!(
+                    "🙋‍ Found item at index {inserting_at}, with ID {:?}, will need to move it.",
+                    existing
+                );
+                *self.id_to_index_in_order.get_mut(&existing).expect("order") = inserting_at.add(1)
+            }
+            None => {
+                println!("✨ completely new");
+            }
+        }
         self.id_to_index_in_order
             .insert(for_key.clone(), inserting_at);
+
         self.items.insert(for_key, item);
         (true, inserting_at)
     }
@@ -123,11 +145,32 @@ where
     pub fn insert(&mut self, item: Item, at: usize) -> (bool, usize) {
         let id = self.id(&item);
         if let Some(existing) = self.index_of_id(&id) {
-            println!("🙅 Already present: {:?} at index {existing}", item);
+            println!(
+                "❌ Skipped adding: {:?} at index {at}, already present at {existing}",
+                item
+            );
             return (false, existing.clone());
         }
         self.update_value(item, id, at);
         (true, at)
+    }
+
+    fn end_index(&self) -> usize {
+        self.len()
+    }
+
+    #[inline]
+    pub fn append(&mut self, item: Item) -> (bool, usize) {
+        self.insert(item, self.end_index())
+    }
+
+    #[inline]
+    pub fn to_vec(&self) -> Vec<&Item> {
+        let mut items_ordered = Vec::<&Item>::new();
+        for id in &self.order {
+            items_ordered.push(self.items.get(id).expect("item"))
+        }
+        items_ordered
     }
 }
 
@@ -137,37 +180,34 @@ mod tests {
     use super::{Identifiable, IdentifiedVec, IdentifiedVecOf};
     use rand::Rng;
 
-    #[derive(Debug, Eq, PartialEq, Clone, Copy)]
+    #[derive(Debug, Eq, PartialEq, Clone)]
     struct User {
-        id: u16,
-        year_of_birth: u16,
+        name: String,
     }
     impl User {
-        fn new(year_of_birth: u16) -> Self {
-            let mut rng = rand::thread_rng();
+        fn new(name: &str) -> Self {
             Self {
-                id: rng.gen(),
-                year_of_birth,
+                name: name.to_string(),
             }
         }
 
         fn alex() -> Self {
-            Self::new(1987)
+            Self::new("Alex")
         }
 
         fn klara() -> Self {
-            Self::new(1990)
+            Self::new("Klara")
         }
 
         fn stella() -> Self {
-            Self::new(2020)
+            Self::new("Stella")
         }
     }
 
     impl Identifiable for User {
-        type ID = u16;
+        type ID = String;
         fn id(&self) -> Self::ID {
-            self.id
+            self.name.clone()
         }
     }
     type SUT = IdentifiedVecOf<User>;
@@ -181,9 +221,32 @@ mod tests {
     fn insertion_duplicates_same_index_not_allowed() {
         let mut sut = SUT::new();
         let user = User::alex();
-        sut.insert(user, 0);
+        sut.insert(user.clone(), 0);
         assert_eq!(sut.len(), 1);
         assert_eq!(sut.insert(user, 0), (false, 0));
         assert_eq!(sut.len(), 1);
+    }
+
+    #[test]
+    fn insertion_duplicates_different_indices_does_not_lead_to_duplicates() {
+        let mut sut = SUT::new();
+        let user = User::alex();
+        sut.insert(user.clone(), 0);
+        assert_eq!(sut.len(), 1);
+        assert_eq!(sut.insert(user, 1), (false, 0));
+        assert_eq!(sut.len(), 1);
+    }
+
+    #[test]
+    fn add_two_insert_third_in_middle_order_is_maintained() {
+        let mut sut = SUT::new();
+        let alex = User::alex();
+        let klara: User = User::klara();
+        let stella = User::stella();
+        sut.append(alex.clone());
+        sut.append(klara.clone());
+        sut.insert(stella.clone(), 1);
+        assert_eq!(sut.to_vec(), vec![&alex, &stella, &klara]);
+        sut.debug();
     }
 }
