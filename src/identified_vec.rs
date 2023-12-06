@@ -246,6 +246,10 @@ mod tests {
         fn stella() -> Self {
             Self::new("Stella")
         }
+
+        fn grodan() -> Self {
+            Self::new("Grodan")
+        }
     }
 
     impl Identifiable for User {
@@ -294,24 +298,54 @@ mod tests {
     }
 
     #[test]
-    fn insert_at_0_three_times_order_is_maintained() {
+    fn insert_at_0_many_times_then_append_order_is_maintained() {
         let mut sut = SUT::new();
         let alex = User::alex();
         let klara: User = User::klara();
         let stella = User::stella();
         let zelda = User::zelda();
+        let grodan = User::grodan();
         sut.insert(alex.clone(), 0);
         sut.insert(klara.clone(), 0);
         sut.insert(zelda.clone(), 0);
         sut.insert(stella.clone(), 0);
-        assert_eq!(sut.to_vec(), vec![&stella, &zelda, &klara, &alex]);
+        sut.append(grodan.clone());
+        assert_eq!(sut.to_vec(), vec![&stella, &zelda, &klara, &alex, &grodan]);
         assert_eq!(
             sut.id_to_index_in_order,
             hashmap! {
                 "stella".to_string() => 0,
-               "zelda".to_string() => 1,
-               "klara".to_string() => 2,
-               "alex".to_string() => 3,
+                "zelda".to_string() => 1,
+                "klara".to_string() => 2,
+                "alex".to_string() => 3,
+                "grodan".to_string() => 4,
+            }
+        );
+        sut.debug();
+    }
+
+     #[test]
+    fn append_then_insert_at_1_many_times_then_append_order_is_maintained() {
+        let mut sut = SUT::new();
+        let alex = User::alex();
+        let klara: User = User::klara();
+        let stella = User::stella();
+        let zelda = User::zelda();
+        let grodan = User::grodan();
+        sut.append(alex.clone());
+        sut.insert(klara.clone(), 1);
+        sut.insert(zelda.clone(), 1);
+        sut.insert(stella.clone(), 1);
+        sut.append(grodan.clone());
+        assert_eq!(sut.to_vec(), vec![&alex, &stella, &zelda, &klara, &grodan]);
+        assert_eq!(
+            sut.id_to_index_in_order,
+            hashmap! {
+                "alex".to_string() => 0,
+                "stella".to_string() => 1,
+                "zelda".to_string() => 2,
+                "klara".to_string() => 3,
+                "grodan".to_string() => 4,
             }
         );
         sut.debug();
