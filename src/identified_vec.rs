@@ -653,6 +653,19 @@ mod tests {
         )
     }
 
+    #[test]
+    fn append() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        let (mut inserted, mut index) = identified_vec.append(4);
+        assert!(inserted);
+        assert_eq!(index, 3);
+        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+        (inserted, index) = identified_vec.append(2);
+        assert_eq!(inserted, false);
+        assert_eq!(index, 1);
+        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+    }
+
     /*
        #[test]
        fn CustomDebugStringConvertible() {
@@ -716,68 +729,6 @@ mod tests {
        fn SubsequenceInit() {
            let identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
-       }
-
-
-       #[test]
-       fn InitUniquingElements() {
-           struct Model: Equatable, Identifiable {
-               let id: Int
-               let data: String
-           }
-           // Choose first element
-           do {
-               let identified_vec = IdentifiedArray(
-                   [
-                       Model(id: 1, data: "A"),
-                       Model(id: 2, data: "B"),
-                       Model(id: 1, data: "AAAA"),
-                   ]
-               ) { lhs, _ in lhs }
-
-               assert_eq!(
-                   identified_vec,
-                   IdentifiedArray(
-                       uniqueElements: [
-                           Model(id: 1, data: "A"),
-                           Model(id: 2, data: "B"),
-                       ]
-                   )
-               )
-           }
-           // Choose later element
-           do {
-               let identified_vec = IdentifiedArray(
-                   [
-                       Model(id: 1, data: "A"),
-                       Model(id: 2, data: "B"),
-                       Model(id: 1, data: "AAAA"),
-                   ]
-               ) { _, rhs in rhs }
-
-               assert_eq!(
-                   identified_vec,
-                   IdentifiedArray(
-                       uniqueElements: [
-                           Model(id: 1, data: "AAAA"),
-                           Model(id: 2, data: "B"),
-                       ]
-                   )
-               )
-           }
-       }
-
-       #[test]
-       fn Append() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           var (inserted, index) = identified_vec.append(4)
-           assert_eq!(inserted, true)
-           assert_eq!(index, 3)
-           assert_eq!(identified_vec, [1, 2, 3, 4])
-           (inserted, index) = identified_vec.append(2)
-           assert_eq!(inserted, false)
-           assert_eq!(index, 1)
-           assert_eq!(identified_vec, [1, 2, 3, 4])
        }
 
        #[test]
