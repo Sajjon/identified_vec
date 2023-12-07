@@ -38,6 +38,65 @@ where
             _id_of_element: id_of_element,
         }
     }
+
+    /// Creates a new array from the elements in the given sequence, using a combining closure to
+    /// determine the element for any elements with duplicate identity.
+    ///
+    /// You use this initializer to create an array when you have an arbitrary sequence of elements
+    /// that may not have unique ids. This initializer calls the `combine` closure with the current
+    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
+    /// to use in the resulting array: The closure can choose between the two elements, combine them
+    /// to produce a new element, or even throw an error.
+    ///
+    /// - Parameters:
+    ///   - elements: A sequence of elements to use for the new array.
+    ///   - id: The key path to an element's identifier.
+    ///   - combine: Closure used to combine elements `(cur, new)` with duplicate ids, returning `true` if `cur` should be replaced with `new`.
+    /// - Returns: A new array initialized with the unique elements of `elements`.
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
+    ///   implements high-quality hashing.
+    #[inline]
+    pub fn new_from_iter_uniquing_ids_with<I>(
+        elements: I,
+        id_of_element: fn(&Element) -> ID,
+        combine: fn(&Element, &Element) -> Result<bool, ()>,
+    ) -> Result<Self, ()>
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        let mut _order = Vec::<ID>::new();
+        let mut _elements = HashMap::<ID, Element>::new();
+
+        for element in elements.into_iter() {
+            let id = id_of_element(&element);
+            match _elements.get(&id) {
+                Some(existing) => match combine(existing, &element) {
+                    Err(e) => return Err(e),
+                    Ok(replace) => {
+                        if replace {
+                            _elements.entry(id.clone()).and_modify(|e| *e = element);
+                            let cur_idx = _order
+                                .iter()
+                                .position(|i| *i == id.clone())
+                                .expect("should have a position");
+                            _order.remove(cur_idx);
+                            _order.push(id);
+                        }
+                    }
+                },
+                None => {
+                    _elements.insert(id.clone(), element);
+                    _order.push(id);
+                }
+            };
+        }
+
+        Ok(Self {
+            order: _order,
+            _id_of_element: id_of_element,
+            elements: _elements,
+        })
+    }
 }
 
 impl<Element> IdentifiedVec<Element::ID, Element>
@@ -256,6 +315,8 @@ mod tests {
 
     use std::{cell::RefCell, fmt::Debug};
 
+    use crate::identified_vec::IdentifiedVec;
+
     use super::{Identifiable, IdentifiedVecOf};
 
     #[derive(Eq, PartialEq, Clone)]
@@ -405,28 +466,61 @@ mod tests {
         assert_eq!(identified_vec.remove_by_id(&2), Some(2));
         assert_eq!(identified_vec.elements(), [1, 3])
     }
+
+    #[test]
+    fn constructor_id_uniquing_elements() {
+        #[derive(Eq, PartialEq, Clone, Hash, Debug)]
+        struct Model {
+            id: i32,
+            data: &'static str,
+        }
+        impl Model {
+            fn new(id: i32, data: &'static str) -> Self {
+                Self { id, data }
+            }
+        }
+        // Choose first element
+        // do {
+        let identified_vec = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
+            [
+                Model::new(1, "A"),
+                Model::new(2, "B"),
+                Model::new(1, "AAAA"),
+            ],
+            |e| e.id,
+            |_, _| Ok(false), /* don't replace */
+        )
+        .unwrap();
+
+        assert_eq!(
+            identified_vec.elements(),
+            [Model::new(1, "A"), Model::new(2, "B")]
+        )
+
+        /*
+        // Choose later element
+        do {
+            let identified_vec = IdentifiedArray(
+                [
+                    Model(id: 1, data: "A"),
+                    Model(id: 2, data: "B"),
+                    Model(id: 1, data: "AAAA"),
+                ],
+                id: \.id
+            ) { _, rhs in rhs }
+
+            assert_eq!(
+                identified_vec,
+                IdentifiedArray(
+                    uniqueElements: [
+                        Model(id: 1, data: "AAAA"),
+                        Model(id: 2, data: "B"),
+                    ], id: \.id))
+        }
+        */
+    }
+
     /*
-
-       #[test]
-       fn Codable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(
-               try JSONDecoder().decode(IdentifiedArray.self, from: JSONEncoder().encode(identified_vec)),
-               identified_vec
-           )
-           assert_eq!(
-               try JSONDecoder().decode(IdentifiedArray.self, from: Data("[1,2,3]".utf8)),
-               identified_vec
-           )
-           XCTAssertThrowsError(
-               try JSONDecoder().decode(IdentifiedArrayOf<Int>.self, from: Data("[1,1,1]".utf8))
-           ) { error in
-               guard case let DecodingError.dataCorrupted(ctx) = error
-               else { return XCTFail() }
-               assert_eq!(ctx.debugDescription, "Duplicate element at offset 1")
-           }
-       }
-
        #[test]
        fn CustomDebugStringConvertible() {
            let identified_vec = SUT::from_iter([1, 2, 3]);
@@ -491,54 +585,6 @@ mod tests {
            assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
        }
 
-       #[test]
-       fn InitIDUniquingElements() {
-           struct Model: Equatable {
-               let id: Int
-               let data: String
-           }
-           // Choose first element
-           do {
-               let identified_vec = IdentifiedArray(
-                   [
-                       Model(id: 1, data: "A"),
-                       Model(id: 2, data: "B"),
-                       Model(id: 1, data: "AAAA"),
-                   ],
-                   id: \.id
-               ) { lhs, _ in lhs }
-
-               assert_eq!(
-                   identified_vec,
-                   IdentifiedArray(
-                       uniqueElements: [
-                           Model(id: 1, data: "A"),
-                           Model(id: 2, data: "B"),
-                       ],
-                       id: \.id
-                   )
-               )
-           }
-           // Choose later element
-           do {
-               let identified_vec = IdentifiedArray(
-                   [
-                       Model(id: 1, data: "A"),
-                       Model(id: 2, data: "B"),
-                       Model(id: 1, data: "AAAA"),
-                   ],
-                   id: \.id
-               ) { _, rhs in rhs }
-
-               assert_eq!(
-                   identified_vec,
-                   IdentifiedArray(
-                       uniqueElements: [
-                           Model(id: 1, data: "AAAA"),
-                           Model(id: 2, data: "B"),
-                       ], id: \.id))
-           }
-       }
 
        #[test]
        fn InitUniquingElements() {
@@ -721,6 +767,26 @@ mod tests {
                    XCTAssertNotEqual(lhs, rhs)
                })
            })
+       }
+
+             #[test]
+       fn Codable() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(
+               try JSONDecoder().decode(IdentifiedArray.self, from: JSONEncoder().encode(identified_vec)),
+               identified_vec
+           )
+           assert_eq!(
+               try JSONDecoder().decode(IdentifiedArray.self, from: Data("[1,2,3]".utf8)),
+               identified_vec
+           )
+           XCTAssertThrowsError(
+               try JSONDecoder().decode(IdentifiedArrayOf<Int>.self, from: Data("[1,1,1]".utf8))
+           ) { error in
+               guard case let DecodingError.dataCorrupted(ctx) = error
+               else { return XCTFail() }
+               assert_eq!(ctx.debugDescription, "Duplicate element at offset 1")
+           }
        }
     */
 }
