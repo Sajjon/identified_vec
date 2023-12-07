@@ -237,14 +237,15 @@ where
     }
 
     #[inline]
-    pub fn delete(&mut self, id: &ID) {
+    pub fn remove(&mut self, id: &ID) -> Option<Item> {
         match self.index_of_id(id) {
             Some(index) => {
                 self.order.remove(index);
-                self.items.remove(id);
+                return self.items.remove(id);
             }
             None => {
-                assert!(!self.items.contains_key(id))
+                assert!(!self.items.contains_key(id));
+                return None;
             }
         }
     }
@@ -370,7 +371,7 @@ mod tests {
             .drain(4..9);
         assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
 
-        identified_vec.delete(id);
+        identified_vec.remove(id);
         assert_eq!(identified_vec.get(id), None);
         identified_vec.append(User::new(4, "Blob, Sr."));
         assert_eq!(
@@ -394,18 +395,18 @@ mod tests {
         let identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.index_of_id(&2), Some(1));
     }
+
+    #[test]
+    fn remove_element() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(identified_vec.remove(&2), Some(2));
+        assert_eq!(identified_vec.elements(), [1, 3])
+    }
+
     /*
-
-       #[test]
-       fn RemoveElement() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.remove(2), 2)
-           assert_eq!(identified_vec, [1, 3])
-       }
-
        #[test]
        fn RemoveId() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(identified_vec.remove(id: 2), 2)
            assert_eq!(identified_vec, [1, 3])
        }
@@ -593,7 +594,7 @@ mod tests {
 
        #[test]
        fn Append() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            var (inserted, index) = identified_vec.append(4)
            assert_eq!(inserted, true)
            assert_eq!(index, 3)
@@ -606,14 +607,14 @@ mod tests {
 
        #[test]
        fn AppendContentsOf() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            identified_vec.append(contentsOf: [1, 4, 3, 5])
            assert_eq!(identified_vec, [1, 2, 3, 4, 5])
        }
 
        #[test]
        fn Insert() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            var (inserted, index) = identified_vec.insert(0, at: 0)
            assert_eq!(inserted, true)
            assert_eq!(index, 0)
@@ -626,13 +627,13 @@ mod tests {
 
        #[test]
        fn UpdateAt() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(identified_vec.update(2, at: 1), 2)
        }
 
        #[test]
        fn UpdateOrAppend() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(identified_vec.updateOrAppend(4), nil)
            assert_eq!(identified_vec, [1, 2, 3, 4])
            assert_eq!(identified_vec.updateOrAppend(2), 2)
@@ -640,7 +641,7 @@ mod tests {
 
        #[test]
        fn UpdateOrInsert() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            var (originalMember, index) = identified_vec.updateOrInsert(0, at: 0)
            assert_eq!(originalMember, nil)
            assert_eq!(index, 0)
@@ -653,7 +654,7 @@ mod tests {
 
        #[test]
        fn Partition() {
-           var identified_vec: IdentifiedArray = [1, 2]
+           let mut identified_vec: IdentifiedArray = [1, 2]
 
            let index = identified_vec.partition { $0.id == 1 }
 
@@ -667,7 +668,7 @@ mod tests {
 
        #[test]
        fn MoveFromOffsetsToOffset() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            identified_vec.move(fromOffsets: [0, 2], toOffset: 0)
            assert_eq!(identified_vec, [1, 3, 2])
 
@@ -682,7 +683,7 @@ mod tests {
 
        #[test]
        fn RemoveAtOffsets() {
-           var identified_vec = SUT::from_iter([1, 2, 3]);
+           let mut identified_vec = SUT::from_iter([1, 2, 3]);
            identified_vec.remove(atOffsets: [0, 2])
            assert_eq!(identified_vec, [2])
        }
