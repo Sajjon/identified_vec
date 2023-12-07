@@ -117,14 +117,6 @@ where
     }
 
     fn _update_value(&mut self, element: Element, for_key: ID, inserting_at: usize) {
-        println!(
-            "\n\n{}\n☑️ START OF INSERT\n📦Arguments:\nelement: {:?}, inserting at:{inserting_at}\n🔮State:\n{}\n{}",
-            "=".repeat(60),
-            element,
-            self.debug_str(),
-            "*".repeat(60),
-        );
-        println!("➕ Adding: {:?} at index {inserting_at}", element);
         self.order.insert(inserting_at, for_key.clone());
         self.elements.insert(for_key, element);
     }
@@ -145,26 +137,10 @@ where
     pub fn insert(&mut self, element: Element, at: usize) -> (bool, usize) {
         let id = self.id(&element);
         if let Some(existing) = self.index_of_id(&id) {
-            println!(
-                "❌ Skipped adding: {:?} at index {at}, already present at {existing}",
-                element
-            );
-            let output = (false, existing.clone());
-            println!(
-                "✅ END OF INSERT\noutput: {:?}\n{}\n✅✅✅",
-                output,
-                self.debug_str()
-            );
-            return output;
+            return (false, existing.clone());
         }
         self._update_value(element, id, at);
-        let output = (true, at);
-        println!(
-            "✅ END OF INSERT\noutput: {:?}\n{}\n✅✅✅",
-            output,
-            self.debug_str()
-        );
-        return output;
+        (true, at)
     }
 
     #[inline]
@@ -243,8 +219,6 @@ where
     /// assert_eq!(users.len(), 1);
     /// ```
     ///
-    ///
-    ///
     /// - Parameter id: The id of the element to be removed from the `identified_vec`.
     /// - Returns: The element that was removed, or `nil` if the element was not present in the array.
     /// - Complexity: O(`count`)
@@ -269,7 +243,7 @@ where
     /// If the element isn't found in the array, `remove` returns `None`.
     ///
     /// - Parameter element: The element to remove.
-    /// - Returns: The value that was removed, or `nil` if the element was not present in the array.
+    /// - Returns: The value that was removed, or `None` if the element was not present in the array.
     /// - Complexity: O(`count`)
     #[inline]
     pub fn remove(&mut self, element: &Element) -> Option<Element> {
@@ -429,7 +403,7 @@ mod tests {
     fn remove_by_id() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.remove_by_id(&2), Some(2));
-        // assert_eq!(identified_vec, [1, 3])
+        assert_eq!(identified_vec.elements(), [1, 3])
     }
     /*
 
