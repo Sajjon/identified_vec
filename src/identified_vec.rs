@@ -401,6 +401,20 @@ where
     pub fn remove(&mut self, element: &Element) -> Option<Element> {
         self.remove_by_id(&self.id(element))
     }
+
+    /// Append the contents of an iterator to the end of the set, excluding elements that are already
+    /// members.
+    ///
+    /// - Parameter elements: A finite sequence of elements to append.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `Element` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn append_other<I>(&mut self, other: I)
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        other.into_iter().for_each(|i| _ = self.append(i))
+    }
 }
 
 #[cfg(test)]
@@ -666,91 +680,27 @@ mod tests {
         assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
     }
 
+    #[test]
+    fn append_other() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        identified_vec.append_other([1, 4, 3, 5]);
+        assert_eq!(identified_vec.elements(), [1, 2, 3, 4, 5])
+    }
+
+    #[test]
+    fn insert() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        let (mut inserted, mut index) = identified_vec.insert(0, 0);
+        assert!(inserted);
+        assert_eq!(index, 0);
+        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+        (inserted, index) = identified_vec.insert(2, 0);
+        assert_eq!(inserted, false);
+        assert_eq!(index, 2);
+        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+    }
+
     /*
-       #[test]
-       fn CustomDebugStringConvertible() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.debugDescription, "IdentifiedArray<Int>([1, 2, 3])")
-       }
-
-       #[test]
-       fn CustomReflectable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           let mirror = Mirror(reflecting: identified_vec)
-           assert_eq!(mirror.displayStyle, .collection)
-           XCTAssert(mirror.superclassMirror == nil)
-           assert_eq!(mirror.children.compactMap { $0.label }.isEmpty, true)
-           assert_eq!(mirror.children.map { $0.value as? Int }, identified_vec.map { $0 })
-       }
-
-       #[test]
-       fn CustomStringConvertible() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.description, "[1, 2, 3]")
-       }
-
-       #[test]
-       fn Hashable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(Set([identified_vec]), Set([identified_vec, identified_vec]))
-       }
-
-       #[test]
-       fn InitUncheckedUniqueElements() {
-           let identified_vec = IdentifiedArray(uncheckedUniqueElements: [1, 2, 3])
-           assert_eq!(identified_vec, [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElementsSelf() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(uniqueElements: identified_vec), [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElementsSubSequence() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(uniqueElements: identified_vec[...]), [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElements() {
-           let identified_vec = IdentifiedArray(uniqueElements: [1, 2, 3])
-           assert_eq!(identified_vec, [1, 2, 3])
-       }
-
-       #[test]
-       fn SelfInit() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(identified_vec), [1, 2, 3])
-       }
-
-       #[test]
-       fn SubsequenceInit() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
-       }
-
-       #[test]
-       fn AppendContentsOf() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           identified_vec.append(contentsOf: [1, 4, 3, 5])
-           assert_eq!(identified_vec, [1, 2, 3, 4, 5])
-       }
-
-       #[test]
-       fn Insert() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           var (inserted, index) = identified_vec.insert(0, at: 0)
-           assert_eq!(inserted, true)
-           assert_eq!(index, 0)
-           assert_eq!(identified_vec, [0, 1, 2, 3])
-           (inserted, index) = identified_vec.insert(2, at: 0)
-           assert_eq!(inserted, false)
-           assert_eq!(index, 2)
-           assert_eq!(identified_vec, [0, 1, 2, 3])
-       }
-
        #[test]
        fn UpdateAt() {
            let mut identified_vec = SUT::from_iter([1, 2, 3]);
@@ -851,6 +801,70 @@ mod tests {
                    XCTAssertNotEqual(lhs, rhs)
                })
            })
+       }
+
+             #[test]
+       fn CustomDebugStringConvertible() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(identified_vec.debugDescription, "IdentifiedArray<Int>([1, 2, 3])")
+       }
+
+       #[test]
+       fn CustomReflectable() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           let mirror = Mirror(reflecting: identified_vec)
+           assert_eq!(mirror.displayStyle, .collection)
+           XCTAssert(mirror.superclassMirror == nil)
+           assert_eq!(mirror.children.compactMap { $0.label }.isEmpty, true)
+           assert_eq!(mirror.children.map { $0.value as? Int }, identified_vec.map { $0 })
+       }
+
+       #[test]
+       fn CustomStringConvertible() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(identified_vec.description, "[1, 2, 3]")
+       }
+
+       #[test]
+       fn Hashable() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(Set([identified_vec]), Set([identified_vec, identified_vec]))
+       }
+
+       #[test]
+       fn InitUncheckedUniqueElements() {
+           let identified_vec = IdentifiedArray(uncheckedUniqueElements: [1, 2, 3])
+           assert_eq!(identified_vec, [1, 2, 3])
+       }
+
+       #[test]
+       fn InitUniqueElementsSelf() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(IdentifiedArray(uniqueElements: identified_vec), [1, 2, 3])
+       }
+
+       #[test]
+       fn InitUniqueElementsSubSequence() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(IdentifiedArray(uniqueElements: identified_vec[...]), [1, 2, 3])
+       }
+
+       #[test]
+       fn InitUniqueElements() {
+           let identified_vec = IdentifiedArray(uniqueElements: [1, 2, 3])
+           assert_eq!(identified_vec, [1, 2, 3])
+       }
+
+       #[test]
+       fn SelfInit() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(IdentifiedArray(identified_vec), [1, 2, 3])
+       }
+
+       #[test]
+       fn SubsequenceInit() {
+           let identified_vec = SUT::from_iter([1, 2, 3]);
+           assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
        }
 
              #[test]
