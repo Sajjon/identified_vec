@@ -56,10 +56,10 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn new_from_iter_uniquing_ids_with<I>(
+    pub fn new_from_iter_try_uniquing_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn(&Element, &Element) -> Result<bool, ()>,
+        combine: fn(Element, Element) -> Result<Element, ()>,
     ) -> Result<Self, ()>
     where
         I: IntoIterator<Item = Element>,
@@ -70,18 +70,10 @@ where
         for element in elements.into_iter() {
             let id = id_of_element(&element);
             match _elements.get(&id) {
-                Some(existing) => match combine(existing, &element) {
+                Some(existing) => match combine(existing.to_owned(), element) {
                     Err(e) => return Err(e),
-                    Ok(replace) => {
-                        if replace {
-                            _elements.entry(id.clone()).and_modify(|e| *e = element);
-                            let cur_idx = _order
-                                .iter()
-                                .position(|i| *i == id.clone())
-                                .expect("should have a position");
-                            _order.remove(cur_idx);
-                            _order.push(id);
-                        }
+                    Ok(selected) => {
+                        _elements.entry(id.clone()).and_modify(|e| *e = selected);
                     }
                 },
                 None => {
@@ -96,6 +88,39 @@ where
             _id_of_element: id_of_element,
             elements: _elements,
         })
+    }
+
+    #[inline]
+    pub fn new_from_iter_uniquing_ids_with<I>(
+        elements: I,
+        id_of_element: fn(&Element) -> ID,
+        combine: fn(Element, Element) -> Element,
+    ) -> Self
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        let mut _order = Vec::<ID>::new();
+        let mut _elements = HashMap::<ID, Element>::new();
+
+        for element in elements.into_iter() {
+            let id = id_of_element(&element);
+            match _elements.get(&id) {
+                Some(existing) => {
+                    let selected = combine(existing.to_owned(), element);
+                    _elements.entry(id.clone()).and_modify(|e| *e = selected);
+                }
+                None => {
+                    _elements.insert(id.clone(), element);
+                    _order.push(id);
+                }
+            };
+        }
+
+        Self {
+            order: _order,
+            _id_of_element: id_of_element,
+            elements: _elements,
+        }
     }
 }
 
@@ -479,45 +504,36 @@ mod tests {
                 Self { id, data }
             }
         }
-        // Choose first element
-        // do {
-        let identified_vec = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
+
+        let conservative = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
             [
                 Model::new(1, "A"),
                 Model::new(2, "B"),
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
-            |_, _| Ok(false), /* don't replace */
-        )
-        .unwrap();
+            |cur, _| cur,
+        );
 
         assert_eq!(
-            identified_vec.elements(),
+            conservative.elements(),
             [Model::new(1, "A"), Model::new(2, "B")]
+        );
+
+        let progressive = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
+            [
+                Model::new(1, "A"),
+                Model::new(2, "B"),
+                Model::new(1, "AAAA"),
+            ],
+            |e| e.id,
+            |_, new| new,
+        );
+
+        assert_eq!(
+            progressive.elements(),
+            [Model::new(1, "AAAA"), Model::new(2, "B")]
         )
-
-        /*
-        // Choose later element
-        do {
-            let identified_vec = IdentifiedArray(
-                [
-                    Model(id: 1, data: "A"),
-                    Model(id: 2, data: "B"),
-                    Model(id: 1, data: "AAAA"),
-                ],
-                id: \.id
-            ) { _, rhs in rhs }
-
-            assert_eq!(
-                identified_vec,
-                IdentifiedArray(
-                    uniqueElements: [
-                        Model(id: 1, data: "AAAA"),
-                        Model(id: 2, data: "B"),
-                    ], id: \.id))
-        }
-        */
     }
 
     /*
