@@ -39,20 +39,20 @@ where
         }
     }
 
-    /// Creates a new array from the elements in the given sequence, using a combining closure to
+    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
     /// determine the element for any elements with duplicate identity.
     ///
-    /// You use this initializer to create an array when you have an arbitrary sequence of elements
+    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
     /// that may not have unique ids. This initializer calls the `combine` closure with the current
     /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
-    /// to use in the resulting array: The closure can choose between the two elements, combine them
+    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
     /// to produce a new element, or even throw an error.
     ///
     /// - Parameters:
-    ///   - elements: A sequence of elements to use for the new array.
-    ///   - id: The key path to an element's identifier.
-    ///   - combine: Closure used to combine elements `(cur, new)` with duplicate ids, returning `true` if `cur` should be replaced with `new`.
-    /// - Returns: A new array initialized with the unique elements of `elements`.
+    ///   - elements: A sequence of elements to use for the new `identified_vec`.
+    ///   - id_of_element: The function which extracts the identifier for an element,
+    ///   - combine: Closure trying to combine elements `(cur, new)` with duplicate ids, returning which element to use, or `Err``
+    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
@@ -90,6 +90,22 @@ where
         })
     }
 
+    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
+    /// determine the element for any elements with duplicate identity.
+    ///
+    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
+    /// that may not have unique ids. This initializer calls the `combine` closure with the current
+    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
+    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
+    /// to produce a new element, or even throw an error.
+    ///
+    /// - Parameters:
+    ///   - elements: A sequence of elements to use for the new `identified_vec`.
+    ///   - id_of_element: The function which extracts the identifier for an element,
+    ///   - combine: Closure used combine elements `(cur, new)` with duplicate ids, returning which element to use.
+    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
+    ///   implements high-quality hashing.
     #[inline]
     pub fn new_from_iter_uniquing_ids_with<I>(
         elements: I,
@@ -159,6 +175,58 @@ where
             .into_iter()
             .for_each(|e| _ = _self.append(e));
         return _self;
+    }
+
+    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
+    /// determine the element for any elements with duplicate ids.
+    ///
+    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
+    /// that may not have unique ids. This initializer calls the `combine` closure with the current
+    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
+    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
+    /// to produce a new element, or even throw an error.
+    ///
+    /// - Parameters:
+    ///   - elements: A sequence of elements to use for the new `identified_vec`.
+    ///   - combine: Closure trying to combine elements `(cur, new)` with duplicate ids, returning which element to use, or `Err``
+    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
+    ///   implements high-quality hashing.
+    #[inline]
+    pub fn new_from_iter_try_uniquing_with<I>(
+        elements: I,
+        combine: fn(Element, Element) -> Result<Element, ()>,
+    ) -> Result<Self, ()>
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        Self::new_from_iter_try_uniquing_ids_with(elements, |e| e.id(), combine)
+    }
+
+    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
+    /// determine the element for any elements with duplicate ids.
+    ///
+    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
+    /// that may not have unique ids. This initializer calls the `combine` closure with the current
+    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
+    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
+    /// to produce a new element, or even throw an error.
+    ///
+    /// - Parameters:
+    ///   - elements: A sequence of elements to use for the new `identified_vec`.
+    ///   - combine: Closure to combine elements `(cur, new)` with duplicate ids, returning which element to use
+    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
+    ///   implements high-quality hashing.
+    #[inline]
+    pub fn new_from_iter_uniquing_with<I>(
+        elements: I,
+        combine: fn(Element, Element) -> Element,
+    ) -> Self
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        Self::new_from_iter_uniquing_ids_with(elements, |e| e.id(), combine)
     }
 }
 
@@ -527,6 +595,55 @@ mod tests {
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
+            |_, new| new,
+        );
+
+        assert_eq!(
+            progressive.elements(),
+            [Model::new(1, "AAAA"), Model::new(2, "B")]
+        )
+    }
+
+    #[test]
+    fn constructor_uniquing_elements() {
+        #[derive(Eq, PartialEq, Clone, Hash, Debug)]
+        struct Model {
+            id: i32,
+            data: &'static str,
+        }
+        impl Model {
+            fn new(id: i32, data: &'static str) -> Self {
+                Self { id, data }
+            }
+        }
+        impl Identifiable for Model {
+            type ID = i32;
+
+            fn id(&self) -> Self::ID {
+                self.id
+            }
+        }
+
+        let conservative = IdentifiedVecOf::<Model>::new_from_iter_uniquing_with(
+            [
+                Model::new(1, "A"),
+                Model::new(2, "B"),
+                Model::new(1, "AAAA"),
+            ],
+            |cur, _| cur,
+        );
+
+        assert_eq!(
+            conservative.elements(),
+            [Model::new(1, "A"), Model::new(2, "B")]
+        );
+
+        let progressive = IdentifiedVecOf::<Model>::new_from_iter_uniquing_with(
+            [
+                Model::new(1, "A"),
+                Model::new(2, "B"),
+                Model::new(1, "AAAA"),
+            ],
             |_, new| new,
         );
 
