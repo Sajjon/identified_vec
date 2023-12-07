@@ -19,11 +19,6 @@ where
     /// The holder of the insertion order
     order: Vec<ID>,
 
-    /// Lookup table for the index inside `order` vec, with `ID` as key.
-    /// this allows for constant time lookup of the index of an ID inside
-    /// `order`
-    id_to_index_in_order: HashMap<ID, usize>,
-
     /// The storage of items.
     items: HashMap<ID, Item>,
 
@@ -40,7 +35,6 @@ where
     pub fn new_identifying_item(id_of_item: fn(&Item) -> ID) -> Self {
         Self {
             order: Vec::new(),
-            id_to_index_in_order: HashMap::new(),
             items: HashMap::new(),
             _id_of_item: id_of_item,
         }
@@ -56,7 +50,6 @@ where
     pub fn new() -> Self {
         Self {
             order: Vec::new(),
-            id_to_index_in_order: HashMap::new(),
             items: HashMap::new(),
             _id_of_item: |i| i.id(),
         }
@@ -97,7 +90,6 @@ where
     pub fn len(&self) -> usize {
         if cfg!(debug_assertions) {
             assert_eq!(self.order.len(), self.items.len());
-            assert_eq!(self.id_to_index_in_order.len(), self.items.len());
         }
         self.order.len()
     }
@@ -108,10 +100,7 @@ where
 
     #[cfg(debug_assertions)]
     pub fn debug_str(&self) -> String {
-        format!(
-            "order: {:?}\nid_to_index_in_order: {:?}\nitems: {:?}",
-            self.order, self.id_to_index_in_order, self.items
-        )
+        format!("order: {:?}\nitems: {:?}", self.order, self.items)
     }
 
     #[cfg(debug_assertions)]
@@ -124,8 +113,8 @@ where
     }
 
     #[inline]
-    pub fn index_of_id(&self, id: &ID) -> Option<&usize> {
-        self.id_to_index_in_order.get(id)
+    pub fn index_of_id(&self, id: &ID) -> Option<usize> {
+        self.order.iter().position(|i| i == id)
     }
 
     fn _offset_indices_of_if_needed(
@@ -151,11 +140,6 @@ where
             }
         }
     }
-    fn offset_indices_if_needed(&mut self, index: usize) {
-        let mut modified = self.id_to_index_in_order.clone();
-        Self::_offset_indices_of_if_needed(&mut modified, &self.order, index);
-        self.id_to_index_in_order = modified;
-    }
 
     fn _update_value(&mut self, item: Item, for_key: ID, inserting_at: usize) {
         println!(
@@ -165,12 +149,8 @@ where
             self.debug_str(),
             "*".repeat(60),
         );
-        self.offset_indices_if_needed(inserting_at);
         println!("➕ Adding: {:?} at index {inserting_at}", item);
         self.order.insert(inserting_at, for_key.clone());
-        self.id_to_index_in_order
-            .insert(for_key.clone(), inserting_at);
-
         self.items.insert(for_key, item);
     }
 
@@ -243,7 +223,7 @@ where
 
     #[inline]
     pub fn contains(&self, item: &Item) -> bool {
-        self.id_to_index_in_order.contains_key(&self.id(&item))
+        self.items.contains_key(&self.id(&item))
     }
 
     #[inline]
@@ -258,19 +238,10 @@ where
 
     #[inline]
     pub fn delete(&mut self, id: &ID) {
-        match self.id_to_index_in_order.get(id) {
+        match self.index_of_id(id) {
             Some(index) => {
-                let idx = index.clone();
-                self.order.remove(idx);
-                self.id_to_index_in_order.remove(id);
+                self.order.remove(index);
                 self.items.remove(id);
-
-                for id_of_elem_in_id_to_index_in_order_to_decrement in &self.order[idx..] {
-                    self.id_to_index_in_order
-                        .get_mut(id_of_elem_in_id_to_index_in_order_to_decrement)
-                        .unwrap()
-                        .sub_assign(1);
-                }
             }
             None => {
                 assert!(!self.items.contains_key(id))
@@ -418,12 +389,10 @@ mod tests {
         assert!(identified_vec.contains(&2))
     }
 
-    
-    
     #[test]
     fn index_id() {
-      let identified_vec = SUT::from_iter([1, 2, 3]);
-        assert_eq!(identified_vec.index_of_id(&2), Some(&1));
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(identified_vec.index_of_id(&2), Some(1));
     }
     /*
 
