@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -377,6 +377,41 @@ where
     #[inline]
     pub fn remove(&mut self, element: &Element) -> Option<Element> {
         self.remove_by_id(&self.id(element))
+    }
+
+    /// Removes and returns the element at the specified position.
+    ///
+    /// All the elements following the specified position are moved to close the resulting gap.
+    ///
+    /// - Parameter index: The position of the element to remove.
+    /// - Returns: The removed element.
+    /// - Precondition: `index` must be a valid index of the collection that is not equal to the
+    ///   collection's end index.
+    /// - Complexity: O(`count`)
+    #[inline]
+    pub fn remove_at(&mut self, index: usize) -> Element {
+        let id = self
+            .order
+            .get(index)
+            .expect("Precondition failure, index out of bounds");
+        let removed = self.elements.remove(id).expect("Element of existing id");
+        self.order.remove(index);
+        return removed;
+    }
+
+    /// Removes all the elements at the specified `offsets` from the `identified_vec`.
+    ///
+    /// - Parameter offsets: The offsets of all elements to be removed.
+    /// - Complexity: O(*n*) where *n* is the length of the `identified_vec`.
+    pub fn remove_at_offsets<I>(&mut self, offsets: I)
+    where
+        I: IntoIterator<Item = usize>,
+    {
+        let mut internal_offset = 0;
+        offsets.into_iter().for_each(|i| {
+            _ = self.remove_at(i - internal_offset);
+            internal_offset += 1;
+        })
     }
 }
 
@@ -774,6 +809,14 @@ mod tests {
         assert_eq!(index, 2);
         assert_eq!(identified_vec.elements(), [0, 1, 2, 3])
     }
+
+    #[test]
+    fn remove_at_offsets() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        identified_vec.remove_at_offsets([0, 2]);
+        assert_eq!(identified_vec.elements(), [2])
+    }
+
     /*
 
        #[test]
@@ -805,12 +848,7 @@ mod tests {
            assert_eq!(identified_vec, [2, 1, 3])
        }
 
-       #[test]
-       fn RemoveAtOffsets() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           identified_vec.remove(atOffsets: [0, 2])
-           assert_eq!(identified_vec, [2])
-       }
+
        #[test]
        fn Equatable() {
            struct Foo: Identifiable, Equatable {
