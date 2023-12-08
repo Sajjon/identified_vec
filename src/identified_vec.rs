@@ -2,28 +2,27 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub trait Identifiable: Debug + Clone {
-    type ID: Eq + Hash + Clone + Debug;
-    fn id(&self) -> Self::ID;
-}
-
-/// A fast collection of unique elements preserving **insertion order**,
+/// A  collection of unique elements preserving **insertion order**,
 /// do NOT use this if you need something memory efficient, this collection
-/// is not optimized for that. It is only optimized for speed.
+/// is not optimized for that.
 pub struct IdentifiedVec<ID, Element>
 where
     Element: Debug + Clone,
     ID: Eq + Hash + Clone + Debug,
 {
     /// The holder of the insertion order
-    order: Vec<ID>,
+    pub(crate) order: Vec<ID>,
 
     /// The storage of elements.
-    elements: HashMap<ID, Element>,
+    pub(crate) elements: HashMap<ID, Element>,
 
-    _id_of_element: fn(&Element) -> ID,
+    /// Function which extracts the ID of an Element.
+    pub(crate) _id_of_element: fn(&Element) -> ID,
 }
 
+///////////////////////
+////  Constructors  ///
+///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     Element: Debug + Clone,
@@ -140,103 +139,18 @@ where
     }
 }
 
-impl<Element> IdentifiedVec<Element::ID, Element>
-where
-    Element: Identifiable,
-{
-    /// Constructs a new, empty `IdentifiedVec<ID, Element>`, using `id()` on `Element`
-    /// as id function.
-    pub fn new() -> Self {
-        Self {
-            order: Vec::new(),
-            elements: HashMap::new(),
-            _id_of_element: |i| i.id(),
-        }
-    }
-
-    /// Creates a new `IdentifiedVec` from the elements in the given sequence.
-    ///
-    /// You use this initializer to create an `IdentifiedVec` when you have a sequence of elements with unique
-    /// ids. Passing a sequence with duplicate ids to this initializer results in a runtime error.
-    ///
-    /// - Parameter elements: A sequence of elements to use for the new `IdentifiedVec`. Every element in
-    ///   `elements` must have a unique id.
-    /// - Returns: A new `IdentifiedVec` initialized with the elements of `elements`.
-    /// - Precondition: The sequence must not have duplicate ids.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
-    ///   implements high-quality hashing.
-    #[inline]
-    pub fn from_iter<I>(unique_elements: I) -> Self
-    where
-        I: IntoIterator<Item = Element>,
-    {
-        let mut _self = Self::new();
-        unique_elements
-            .into_iter()
-            .for_each(|e| _ = _self.append(e));
-        return _self;
-    }
-
-    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
-    /// determine the element for any elements with duplicate ids.
-    ///
-    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
-    /// that may not have unique ids. This initializer calls the `combine` closure with the current
-    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
-    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
-    /// to produce a new element, or even throw an error.
-    ///
-    /// - Parameters:
-    ///   - elements: A sequence of elements to use for the new `identified_vec`.
-    ///   - combine: Closure trying to combine elements `(cur, new)` with duplicate ids, returning which element to use, or `Err``
-    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
-    ///   implements high-quality hashing.
-    #[inline]
-    pub fn new_from_iter_try_uniquing_with<I>(
-        elements: I,
-        combine: fn(Element, Element) -> Result<Element, ()>,
-    ) -> Result<Self, ()>
-    where
-        I: IntoIterator<Item = Element>,
-    {
-        Self::new_from_iter_try_uniquing_ids_with(elements, |e| e.id(), combine)
-    }
-
-    /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
-    /// determine the element for any elements with duplicate ids.
-    ///
-    /// You use this initializer to create an `identified_vec` when you have an arbitrary sequence of elements
-    /// that may not have unique ids. This initializer calls the `combine` closure with the current
-    /// and new elements for any duplicate ids. Pass a closure as `combine` that returns the element
-    /// to use in the resulting `identified_vec`: The closure can choose between the two elements, combine them
-    /// to produce a new element, or even throw an error.
-    ///
-    /// - Parameters:
-    ///   - elements: A sequence of elements to use for the new `identified_vec`.
-    ///   - combine: Closure to combine elements `(cur, new)` with duplicate ids, returning which element to use
-    /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
-    ///   implements high-quality hashing.
-    #[inline]
-    pub fn new_from_iter_uniquing_with<I>(
-        elements: I,
-        combine: fn(Element, Element) -> Element,
-    ) -> Self
-    where
-        I: IntoIterator<Item = Element>,
-    {
-        Self::new_from_iter_uniquing_ids_with(elements, |e| e.id(), combine)
-    }
-}
-
-pub type IdentifiedVecOf<Element> = IdentifiedVec<<Element as Identifiable>::ID, Element>;
-
+///////////////////////
+////  Public Get    ///
+///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
     Element: Debug + Clone,
 {
+    pub fn ids(&self) -> &Vec<ID> {
+        &self.order
+    }
+
     /// Returns the number of elements in the `IdentifiedVec`, also referred to as its 'length'.
     pub fn len(&self) -> usize {
         if cfg!(debug_assertions) {
@@ -245,59 +159,88 @@ where
         self.order.len()
     }
 
-    pub fn ids(&self) -> &Vec<ID> {
-        &self.order
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn debug_str(&self) -> String {
-        format!("order: {:?}\nelements: {:?}", self.order, self.elements)
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn debug(&self) {
-        println!("{}", self.debug_str());
-    }
-
-    fn id(&self, of: &Element) -> ID {
-        (self._id_of_element)(of)
-    }
-
     #[inline]
     pub fn index_of_id(&self, id: &ID) -> Option<usize> {
         self.order.iter().position(|i| i == id)
     }
 
-    fn _update_value(
-        &mut self,
-        element: Element,
-        for_key: ID,
-        inserting_at: usize,
-    ) -> Option<Element> {
-        self.order.insert(inserting_at, for_key.clone());
-        self.elements.insert(for_key, element)
+    #[inline]
+    pub fn get_mut(&mut self, id: &ID) -> Option<&mut Element> {
+        self.elements.get_mut(id)
     }
 
-    /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
-    /// it.
-    ///
-    /// - Parameter element: The element to insert.
-    /// - Returns: A pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
-    ///   the operation added a new element, and `index` is the index of `element` in the resulting
-    ///   identified_vec. If `inserted` is true, then the returned `index` may be different from the index
-    ///   requested.
-    ///
-    /// - Complexity: The operation is expected to perform amortized O(`self.count`) copy, hash, and
-    ///   compare operations on the `ID` type, if it implements high-quality hashing. (Insertions need
-    ///   to make room in the storage identified_vec to add the inserted element.)
     #[inline]
-    pub fn insert(&mut self, element: Element, at: usize) -> (bool, usize) {
-        let id = self.id(&element);
-        if let Some(existing) = self.index_of_id(&id) {
-            return (false, existing.clone());
+    pub fn elements(&self) -> Vec<Element> {
+        let mut elements_ordered = Vec::<Element>::new();
+        for id in &self.order {
+            elements_ordered.push(self.elements.get(id).expect("element").clone());
         }
-        self._update_value(element, id, at);
-        (true, at)
+        elements_ordered
+    }
+
+    #[inline]
+    pub fn contains(&self, element: &Element) -> bool {
+        self.elements.contains_key(&self.id(&element))
+    }
+
+    #[inline]
+    pub fn contains_id(&self, id: &ID) -> bool {
+        self.elements.contains_key(id)
+    }
+
+    #[inline]
+    pub fn get(&self, id: &ID) -> Option<&Element> {
+        self.elements.get(id)
+    }
+}
+
+///////////////////////
+////  Public Insert ///
+///////////////////////
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+    Element: Debug + Clone,
+{
+    /// Append a new member to the end of the `identified_vec`, if the `identified_vec` doesn't already contain it.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: A pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn append(&mut self, element: Element) -> (bool, usize) {
+        self.insert(element, self.end_index())
+    }
+
+    /// Append the contents of an iterator to the end of the set, excluding elements that are already
+    /// members.
+    ///
+    /// - Parameter elements: A finite sequence of elements to append.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `Element` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn append_other<I>(&mut self, other: I)
+    where
+        I: IntoIterator<Item = Element>,
+    {
+        other.into_iter().for_each(|i| _ = self.append(i))
+    }
+
+    /// Adds the given element to the `identified_vec` unconditionally, either appending it to the `identified_vec``, or
+    /// replacing an existing value if it's already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Returns: The original element that was replaced by this operation, or `None` if the value was
+    ///   appended to the end of the collection.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn update_or_append(&mut self, element: Element) -> Option<Element> {
+        let id = self.id(&element);
+        self._update_value(element, id)
     }
 
     /// Replace the member at the given index with a new value of the same identity.
@@ -319,8 +262,31 @@ where
             "The replacement item must match the identity of the original"
         );
         return self
-            ._update_value(element, id, index)
+            ._update_value_inserting_at(element, id, index)
+            .0
             .expect("Replaced old value");
+    }
+
+    /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
+    /// it.
+    ///
+    /// - Parameter element: The element to insert.
+    /// - Returns: A pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `element` in the resulting
+    ///   identified_vec. If `inserted` is true, then the returned `index` may be different from the index
+    ///   requested.
+    ///
+    /// - Complexity: The operation is expected to perform amortized O(`self.count`) copy, hash, and
+    ///   compare operations on the `ID` type, if it implements high-quality hashing. (Insertions need
+    ///   to make room in the storage identified_vec to add the inserted element.)
+    #[inline]
+    pub fn insert(&mut self, element: Element, at: usize) -> (bool, usize) {
+        let id = self.id(&element);
+        if let Some(existing) = self.index_of_id(&id) {
+            return (false, existing.clone());
+        }
+        self._update_value_inserting_at(element, id, at);
+        (true, at)
     }
 
     /// Adds the given element into the set unconditionally, either inserting it at the specified
@@ -334,62 +300,27 @@ where
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
     ///   operations on the `ID` type, if it implements high-quality hashing.
     #[inline]
-    pub fn update_or_insert(&mut self, element: Element, index: usize) -> Option<Element> {
+    pub fn update_or_insert(&mut self, element: Element, index: usize) -> (Option<Element>, usize) {
         let id = self.id(&element);
-        self._update_value(element, id, index)
+        self._update_value_inserting_at(element, id, index)
     }
+}
 
-    fn end_index(&self) -> usize {
-        self.len()
-    }
-
-    #[inline]
-    pub fn append(&mut self, element: Element) -> (bool, usize) {
-        self.insert(element, self.end_index())
-    }
-
-    /// Adds the given element to the `identified_vec` unconditionally, either appending it to the identified_vec, or
-    /// replacing an existing value if it's already present.
-    ///
-    /// - Parameter item: The value to append or replace.
-    /// - Returns: The original element that was replaced by this operation, or `None` if the value was
-    ///   appended to the end of the collection.
-    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `ID` type, if it implements high-quality hashing.
-    #[inline]
-    pub fn update_or_append(&mut self, element: Element) -> Option<Element> {
-        self.update_or_insert(element, self.end_index())
-    }
-
-    #[inline]
-    pub fn elements(&self) -> Vec<Element> {
-        let mut elements_ordered = Vec::<Element>::new();
-        for id in &self.order {
-            elements_ordered.push(self.elements.get(id).expect("element").clone());
-        }
-        elements_ordered
-    }
-
-    #[inline]
-    pub fn contains(&self, element: &Element) -> bool {
-        self.elements.contains_key(&self.id(&element))
-    }
-
-    #[inline]
-    pub fn get(&self, id: &ID) -> Option<&Element> {
-        self.elements.get(id)
-    }
-
-    #[inline]
-    pub fn get_mut(&mut self, id: &ID) -> Option<&mut Element> {
-        self.elements.get_mut(id)
-    }
-
+///////////////////////
+//// Public Remove  ///
+///////////////////////
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+    Element: Debug + Clone,
+{
     /// Removes the element identified by the given id from the `identified_vec`.
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::identified_vec::IdentifiedVec;
+    /// use identified_vec::identifiable::Identifiable;
+    /// use identified_vec::identified_vec_of::IdentifiedVecOf;
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
     ///     id: &'static str,
@@ -418,7 +349,7 @@ where
     /// ```
     ///
     /// - Parameter id: The id of the element to be removed from the `identified_vec`.
-    /// - Returns: The element that was removed, or `nil` if the element was not present in the array.
+    /// - Returns: The element that was removed, or `None` if the element was not present in the array.
     /// - Complexity: O(`count`)
     #[inline]
     pub fn remove_by_id(&mut self, id: &ID) -> Option<Element> {
@@ -434,32 +365,102 @@ where
         }
     }
 
-    /// Removes the given element from the array.
+    /// Removes the given element from the `indentified_vec`.
     ///
-    /// If the element is found in the array, this method returns the element.
+    /// If the element is found in the `indentified_vec`, this method returns the element.
     ///
-    /// If the element isn't found in the array, `remove` returns `None`.
+    /// If the element isn't found in the `indentified_vec`, `remove` returns `None`.
     ///
     /// - Parameter element: The element to remove.
-    /// - Returns: The value that was removed, or `None` if the element was not present in the array.
+    /// - Returns: The value that was removed, or `None` if the element was not present in the `indentified_vec`.
     /// - Complexity: O(`count`)
     #[inline]
     pub fn remove(&mut self, element: &Element) -> Option<Element> {
         self.remove_by_id(&self.id(element))
     }
+}
 
-    /// Append the contents of an iterator to the end of the set, excluding elements that are already
-    /// members.
-    ///
-    /// - Parameter elements: A finite sequence of elements to append.
-    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Element` type, if it implements high-quality hashing.
-    #[inline]
-    pub fn append_other<I>(&mut self, other: I)
-    where
-        I: IntoIterator<Item = Element>,
-    {
-        other.into_iter().for_each(|i| _ = self.append(i))
+///////////////////////
+////    PRIVATE     ///
+///////////////////////
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+    Element: Debug + Clone,
+{
+    /// Next index for element appended
+    fn end_index(&self) -> usize {
+        self.len()
+    }
+
+    /// Returns the ID of an Element
+    fn id(&self, of: &Element) -> ID {
+        (self._id_of_element)(of)
+    }
+
+    /// Inserting ID at an index, returning if it did, if not, the index of the existing.
+    fn _insert_id_at(&mut self, id: ID, index: usize) -> (bool, usize) {
+        match self.index_of_id(&id) {
+            Some(existing) => (false, existing),
+            None => {
+                self.order.insert(index, id);
+                (true, index)
+            }
+        }
+    }
+
+    fn _update_value(&mut self, element: Element, for_key: ID) -> Option<Element> {
+        let value = element;
+        let key = for_key;
+
+        if self.contains_id(&key) {
+            let old = self.elements.get(&key).cloned();
+            self.elements.entry(key.clone()).and_modify(|e| *e = value);
+            return old;
+        }
+
+        self.elements.insert(key.clone(), value);
+        self.order.push(key);
+        return None;
+    }
+
+    fn _update_value_inserting_at(
+        &mut self,
+        element: Element,
+        for_key: ID,
+        index: usize,
+    ) -> (Option<Element>, usize) {
+        let id = for_key;
+        let value = element;
+
+        let (inserted, offset) = self._insert_id_at(id.clone(), index);
+        if inserted {
+            assert_eq!(offset, index);
+            self.elements.insert(id.clone(), value);
+            return (None, offset);
+        }
+        let old = self.elements.get(&id).expect("existing element").clone();
+        self.elements.entry(id.clone()).and_modify(|e| *e = value);
+        return (Some(old), offset);
+    }
+}
+
+///////////////////////
+////    DEBUG       ///
+///////////////////////
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+    Element: Debug + Clone,
+{
+    #[cfg(debug_assertions)]
+    pub fn debug(&self) {
+        println!("{}", self.debug_str());
+    }
+
+    #[cfg(debug_assertions)]
+    pub fn debug_str(&self) -> String {
+        format!("order: {:?}\nelements: {:?}", self.order, self.elements)
     }
 }
 
@@ -468,9 +469,10 @@ mod tests {
 
     use std::{cell::RefCell, fmt::Debug};
 
-    use crate::identified_vec::IdentifiedVec;
-
-    use super::{Identifiable, IdentifiedVecOf};
+    use crate::{
+        identifiable::Identifiable, identified_vec::IdentifiedVec,
+        identified_vec_of::IdentifiedVecOf,
+    };
 
     #[derive(Eq, PartialEq, Clone)]
     pub struct User {
@@ -751,28 +753,28 @@ mod tests {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.update_at(2, 1), 2)
     }
+
+    #[test]
+    fn update_or_append() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(identified_vec.update_or_append(4), None);
+        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+        assert_eq!(identified_vec.update_or_append(2), Some(2));
+    }
+
+    #[test]
+    fn update_or_insert() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        let (mut original_member, mut index) = identified_vec.update_or_insert(0, 0);
+        assert_eq!(original_member, None);
+        assert_eq!(index, 0);
+        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+        (original_member, index) = identified_vec.update_or_insert(2, 0);
+        assert_eq!(original_member, Some(2));
+        assert_eq!(index, 2);
+        assert_eq!(identified_vec.elements(), [0, 1, 2, 3])
+    }
     /*
-
-       #[test]
-       fn UpdateOrAppend() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.updateOrAppend(4), nil)
-           assert_eq!(identified_vec, [1, 2, 3, 4])
-           assert_eq!(identified_vec.updateOrAppend(2), 2)
-       }
-
-       #[test]
-       fn UpdateOrInsert() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           var (originalMember, index) = identified_vec.updateOrInsert(0, at: 0)
-           assert_eq!(originalMember, nil)
-           assert_eq!(index, 0)
-           assert_eq!(identified_vec, [0, 1, 2, 3])
-           (originalMember, index) = identified_vec.updateOrInsert(2, at: 0)
-           assert_eq!(originalMember, 2)
-           assert_eq!(index, 2)
-           assert_eq!(identified_vec, [0, 1, 2, 3])
-       }
 
        #[test]
        fn Partition() {
