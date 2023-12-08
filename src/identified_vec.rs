@@ -203,18 +203,27 @@ where
     ///
     /// - Parameter id: The id to find in the `identified_vec`.
     /// - Returns: The index for the element identified by `id` if found in the `identified_vec`; otherwise,
-    ///   `nil`.
+    ///   `None`.
     /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
     #[inline]
     pub fn index_of_id(&self, id: &ID) -> Option<usize> {
         self.order.iter().position(|i| i == id)
     }
 
+    /// Returns a mutable reference to the element identified by `id` if any, else None.
+    ///
+    /// - Parameter id: The id to find in the `identified_vec`.
+    /// - Returns: The mutable reference to the element identified by `id` if found in the `identified_vec`; otherwise,
+    ///   `None`.
+    /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
     #[inline]
     pub fn get_mut(&mut self, id: &ID) -> Option<&mut Element> {
         self.elements.get_mut(id)
     }
 
+    /// A read-only collection view for the elements contained in this array, as a `Vec<Elements>`.
+    ///
+    /// - Complexity: O(1)
     #[inline]
     pub fn elements(&self) -> Vec<Element> {
         let mut elements_ordered = Vec::<Element>::new();
@@ -224,16 +233,19 @@ where
         elements_ordered
     }
 
+    /// Returns `true` if the `identified_vec` contains the `element.`
     #[inline]
     pub fn contains(&self, element: &Element) -> bool {
         self.elements.contains_key(&self.id(&element))
     }
 
+    /// Returns `true if the `identified_vec` contains an element for the specified `id`
     #[inline]
     pub fn contains_id(&self, id: &ID) -> bool {
         self.elements.contains_key(id)
     }
 
+    /// Returns a reference to the element corresponding to the `id`, if found, else `None`.
     #[inline]
     pub fn get(&self, id: &ID) -> Option<&Element> {
         self.elements.get(id)
