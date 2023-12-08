@@ -1,10 +1,13 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::hash::Hash;
+
+use anyerror::AnyError;
 
 /// A  collection of unique elements preserving **insertion order**,
 /// do NOT use this if you need something memory efficient, this collection
 /// is not optimized for that.
+#[derive(Debug, Clone)]
 pub struct IdentifiedVec<ID, Element>
 where
     Element: Debug + Clone,
@@ -58,8 +61,8 @@ where
     pub fn new_from_iter_try_uniquing_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn(Element, Element) -> Result<Element, ()>,
-    ) -> Result<Self, ()>
+        combine: fn(usize, Element, Element) -> Result<Element, AnyError>,
+    ) -> Result<Self, AnyError>
     where
         I: IntoIterator<Item = Element>,
     {
@@ -69,7 +72,7 @@ where
         for element in elements.into_iter() {
             let id = id_of_element(&element);
             match _elements.get(&id) {
-                Some(existing) => match combine(existing.to_owned(), element) {
+                Some(existing) => match combine(_order.len(), existing.to_owned(), element) {
                     Err(e) => return Err(e),
                     Ok(selected) => {
                         _elements.entry(id.clone()).and_modify(|e| *e = selected);
@@ -109,7 +112,7 @@ where
     pub fn new_from_iter_uniquing_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn(Element, Element) -> Element,
+        combine: fn(usize, Element, Element) -> Element,
     ) -> Self
     where
         I: IntoIterator<Item = Element>,
@@ -121,7 +124,7 @@ where
             let id = id_of_element(&element);
             match _elements.get(&id) {
                 Some(existing) => {
-                    let selected = combine(existing.to_owned(), element);
+                    let selected = combine(_order.len(), existing.to_owned(), element);
                     _elements.entry(id.clone()).and_modify(|e| *e = selected);
                 }
                 None => {
@@ -416,6 +419,39 @@ where
 }
 
 ///////////////////////
+////      Eq        ///
+///////////////////////
+impl<ID, Element> PartialEq for IdentifiedVec<ID, Element>
+where
+    Element: PartialEq + Debug + Clone,
+    ID: Eq + Hash + Clone + Debug,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.elements() == other.elements()
+    }
+}
+
+impl<ID, Element> Eq for IdentifiedVec<ID, Element>
+where
+    Element: Eq + Debug + Clone,
+    ID: Eq + Hash + Clone + Debug,
+{
+}
+
+///////////////////////
+////      Hash      ///
+///////////////////////
+impl<ID, Element> Hash for IdentifiedVec<ID, Element>
+where
+    Element: Hash + Debug + Clone,
+    ID: Eq + Hash + Clone + Debug,
+{
+    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+        self.elements().hash(state);
+    }
+}
+
+///////////////////////
 ////    PRIVATE     ///
 ///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
@@ -677,7 +713,7 @@ mod tests {
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
-            |cur, _| cur,
+            |_, cur, _| cur,
         );
 
         assert_eq!(
@@ -692,7 +728,7 @@ mod tests {
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
-            |_, new| new,
+            |_, _, new| new,
         );
 
         assert_eq!(
@@ -727,7 +763,7 @@ mod tests {
                 Model::new(2, "B"),
                 Model::new(1, "AAAA"),
             ],
-            |cur, _| cur,
+            |_, cur, _| cur,
         );
 
         assert_eq!(
@@ -741,7 +777,7 @@ mod tests {
                 Model::new(2, "B"),
                 Model::new(1, "AAAA"),
             ],
-            |_, new| new,
+            |_, _, new| new,
         );
 
         assert_eq!(
@@ -815,6 +851,34 @@ mod tests {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         identified_vec.remove_at_offsets([0, 2]);
         assert_eq!(identified_vec.elements(), [2])
+    }
+
+    #[test]
+    fn serde() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(
+            serde_json::to_value(identified_vec.clone())
+                .and_then(|j| serde_json::from_value::<SUT>(j))
+                .unwrap(),
+            identified_vec
+        );
+        /*
+        assert_eq!(
+            try JSONDecoder().decode(IdentifiedArray.self, from: JSONEncoder().encode(identified_vec)),
+            identified_vec
+        )
+        assert_eq!(
+            try JSONDecoder().decode(IdentifiedArray.self, from: Data("[1,2,3]".utf8)),
+            identified_vec
+        )
+        XCTAssertThrowsError(
+            try JSONDecoder().decode(IdentifiedArrayOf<Int>.self, from: Data("[1,1,1]".utf8))
+        ) { error in
+            guard case let DecodingError.dataCorrupted(ctx) = error
+            else { return XCTFail() }
+            assert_eq!(ctx.debugDescription, "Duplicate element at offset 1")
+        }
+        */
     }
 
     /*
@@ -951,26 +1015,6 @@ mod tests {
        fn SubsequenceInit() {
            let identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
-       }
-
-             #[test]
-       fn Codable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(
-               try JSONDecoder().decode(IdentifiedArray.self, from: JSONEncoder().encode(identified_vec)),
-               identified_vec
-           )
-           assert_eq!(
-               try JSONDecoder().decode(IdentifiedArray.self, from: Data("[1,2,3]".utf8)),
-               identified_vec
-           )
-           XCTAssertThrowsError(
-               try JSONDecoder().decode(IdentifiedArrayOf<Int>.self, from: Data("[1,1,1]".utf8))
-           ) { error in
-               guard case let DecodingError.dataCorrupted(ctx) = error
-               else { return XCTFail() }
-               assert_eq!(ctx.debugDescription, "Duplicate element at offset 1")
-           }
        }
     */
 }
