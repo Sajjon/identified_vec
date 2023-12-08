@@ -150,6 +150,9 @@ where
     ID: Eq + Hash + Clone + Debug,
     Element: Debug + Clone,
 {
+    /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<ID>`.
+    ///
+    /// - Complexity: O(1)
     pub fn ids(&self) -> &Vec<ID> {
         &self.order
     }
