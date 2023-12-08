@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
-use std::hash::Hash;
+use std::hash::{Hash, Hasher};
 
 use anyerror::AnyError;
 
@@ -446,7 +446,7 @@ where
     Element: Hash + Debug + Clone,
     ID: Eq + Hash + Clone + Debug,
 {
-    fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+    fn hash<H: Hasher>(&self, state: &mut H) {
         self.elements().hash(state);
     }
 }
@@ -551,14 +551,11 @@ where
 #[cfg(test)]
 mod tests {
 
-    use std::{cell::RefCell, error::Error, fmt::Debug};
-
-    use anyerror::AnyError;
-    use serde::de;
+    use std::{cell::RefCell, collections::HashSet, fmt::Debug};
 
     use crate::{
         identifiable::Identifiable, identified_vec::IdentifiedVec,
-        identified_vec_of::IdentifiedVecOf, serde_error::IdentifiedVecOfSerdeFailure,
+        identified_vec_of::IdentifiedVecOf,
     };
 
     #[derive(Eq, PartialEq, Clone)]
@@ -951,6 +948,15 @@ mod tests {
         });
     }
 
+    #[test]
+    fn hash() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(
+            HashSet::<IdentifiedVec<i32, i32>>::from_iter([identified_vec.clone()]),
+            HashSet::from_iter([identified_vec.clone(), identified_vec])
+        )
+    }
+
     /*
 
        #[test]
@@ -983,7 +989,7 @@ mod tests {
        }
 
 
-             #[test]
+        #[test]
        fn CustomDebugStringConvertible() {
            let identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(identified_vec.debugDescription, "IdentifiedArray<Int>([1, 2, 3])")
@@ -1003,12 +1009,6 @@ mod tests {
        fn CustomStringConvertible() {
            let identified_vec = SUT::from_iter([1, 2, 3]);
            assert_eq!(identified_vec.description, "[1, 2, 3]")
-       }
-
-       #[test]
-       fn Hashable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(Set([identified_vec]), Set([identified_vec, identified_vec]))
        }
 
        #[test]
