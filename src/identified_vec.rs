@@ -882,6 +882,7 @@ mod tests {
             serde_json::from_str::<SUT>("[1,2,3]").unwrap(),
             identified_vec
         );
+        assert_eq!(serde_json::to_string(&identified_vec).unwrap(), "[1,2,3]");
         assert_eq!(
             serde_json::from_str::<SUT>("[1,1,1]").expect_err("should fail").to_string(),
             "identified_vec::serde_error::IdentifiedVecOfSerdeFailure: Duplicate element at offset 1"
