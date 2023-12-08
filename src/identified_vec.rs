@@ -4,7 +4,7 @@ use std::hash::{Hash, Hasher};
 
 use anyerror::AnyError;
 
-/// A  collection of unique elements preserving **insertion order**,
+/// A collection of unique elements preserving **insertion order**,
 /// do NOT use this if you need something memory efficient, this collection
 /// is not optimized for that.
 #[derive(Debug, Clone)]
@@ -154,7 +154,7 @@ where
         &self.order
     }
 
-    /// Returns the number of elements in the `IdentifiedVec`, also referred to as its 'length'.
+    /// Returns the number of elements in the `identified_vec`, also referred to as its 'length'.
     pub fn len(&self) -> usize {
         if cfg!(debug_assertions) {
             assert_eq!(self.order.len(), self.elements.len());
@@ -162,6 +162,46 @@ where
         self.order.len()
     }
 
+    /// Returns the index for the given id.
+    ///
+    /// If an element identified by the given id is found in the `identified_vec`, this method returns an index
+    /// into the array that corresponds to the element.
+    ///
+    /// ```
+    /// extern crate identified_vec;
+    /// use identified_vec::identified_vec::IdentifiedVec;
+    /// use identified_vec::identifiable::Identifiable;
+    /// use identified_vec::identified_vec_of::IdentifiedVecOf;
+    ///
+    /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
+    /// struct User {
+    ///     id: &'static str,
+    /// }
+    ///
+    /// impl User {
+    ///     fn new(id: &'static str) -> Self {
+    ///         Self { id }
+    ///     }
+    /// }
+    ///
+    /// impl Identifiable for User {
+    ///     type ID = &'static str;
+    ///     fn id(&self) -> Self::ID {
+    ///         self.id
+    ///     }
+    /// }
+    ///
+    /// let mut users =
+    ///     IdentifiedVecOf::<User>::from_iter([User::new("u_42"), User::new("u_1729")]);
+    ///
+    /// assert_eq!(users.index_of_id(&"u_1729"), Some(1));
+    /// assert_eq!(users.index_of_id(&"u_1337"), None);
+    /// ```
+    ///
+    /// - Parameter id: The id to find in the `identified_vec`.
+    /// - Returns: The index for the element identified by `id` if found in the `identified_vec`; otherwise,
+    ///   `nil`.
+    /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
     #[inline]
     pub fn index_of_id(&self, id: &ID) -> Option<usize> {
         self.order.iter().position(|i| i == id)
@@ -324,6 +364,7 @@ where
     /// use identified_vec::identified_vec::IdentifiedVec;
     /// use identified_vec::identifiable::Identifiable;
     /// use identified_vec::identified_vec_of::IdentifiedVecOf;
+    ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
     ///     id: &'static str,
@@ -962,95 +1003,4 @@ mod tests {
             HashSet::from_iter([identified_vec.clone(), identified_vec])
         )
     }
-
-    /*
-
-       #[test]
-       fn Partition() {
-           let mut identified_vec: IdentifiedArray = [1, 2]
-
-           let index = identified_vec.partition { $0.id == 1 }
-
-           assert_eq!(index, 1)
-           assert_eq!(identified_vec, [2, 1])
-
-           for id in identified_vec.ids {
-               assert_eq!(id, identified_vec[id: id]?.id)
-           }
-       }
-
-       #[test]
-       fn MoveFromOffsetsToOffset() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           identified_vec.move(fromOffsets: [0, 2], toOffset: 0)
-           assert_eq!(identified_vec, [1, 3, 2])
-
-           identified_vec = [1, 2, 3]
-           identified_vec.move(fromOffsets: [0, 2], toOffset: 1)
-           assert_eq!(identified_vec, [1, 3, 2])
-
-           identified_vec = [1, 2, 3]
-           identified_vec.move(fromOffsets: [0, 2], toOffset: 2)
-           assert_eq!(identified_vec, [2, 1, 3])
-       }
-
-
-        #[test]
-       fn CustomDebugStringConvertible() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.debugDescription, "IdentifiedArray<Int>([1, 2, 3])")
-       }
-
-       #[test]
-       fn CustomReflectable() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           let mirror = Mirror(reflecting: identified_vec)
-           assert_eq!(mirror.displayStyle, .collection)
-           XCTAssert(mirror.superclassMirror == nil)
-           assert_eq!(mirror.children.compactMap { $0.label }.isEmpty, true)
-           assert_eq!(mirror.children.map { $0.value as? Int }, identified_vec.map { $0 })
-       }
-
-       #[test]
-       fn CustomStringConvertible() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.description, "[1, 2, 3]")
-       }
-
-       #[test]
-       fn InitUncheckedUniqueElements() {
-           let identified_vec = IdentifiedArray(uncheckedUniqueElements: [1, 2, 3])
-           assert_eq!(identified_vec, [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElementsSelf() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(uniqueElements: identified_vec), [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElementsSubSequence() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(uniqueElements: identified_vec[...]), [1, 2, 3])
-       }
-
-       #[test]
-       fn InitUniqueElements() {
-           let identified_vec = IdentifiedArray(uniqueElements: [1, 2, 3])
-           assert_eq!(identified_vec, [1, 2, 3])
-       }
-
-       #[test]
-       fn SelfInit() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(identified_vec), [1, 2, 3])
-       }
-
-       #[test]
-       fn SubsequenceInit() {
-           let identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(IdentifiedArray(identified_vec[...]), [1, 2, 3])
-       }
-    */
 }
