@@ -538,11 +538,14 @@ where
 #[cfg(test)]
 mod tests {
 
-    use std::{cell::RefCell, fmt::Debug};
+    use std::{cell::RefCell, error::Error, fmt::Debug};
+
+    use anyerror::AnyError;
+    use serde::de;
 
     use crate::{
         identifiable::Identifiable, identified_vec::IdentifiedVec,
-        identified_vec_of::IdentifiedVecOf,
+        identified_vec_of::IdentifiedVecOf, serde_error::IdentifiedVecOfSerdeFailure,
     };
 
     #[derive(Eq, PartialEq, Clone)]
@@ -862,23 +865,14 @@ mod tests {
                 .unwrap(),
             identified_vec
         );
-        /*
         assert_eq!(
-            try JSONDecoder().decode(IdentifiedArray.self, from: JSONEncoder().encode(identified_vec)),
+            serde_json::from_str::<SUT>("[1,2,3]").unwrap(),
             identified_vec
-        )
+        );
         assert_eq!(
-            try JSONDecoder().decode(IdentifiedArray.self, from: Data("[1,2,3]".utf8)),
-            identified_vec
-        )
-        XCTAssertThrowsError(
-            try JSONDecoder().decode(IdentifiedArrayOf<Int>.self, from: Data("[1,1,1]".utf8))
-        ) { error in
-            guard case let DecodingError.dataCorrupted(ctx) = error
-            else { return XCTFail() }
-            assert_eq!(ctx.debugDescription, "Duplicate element at offset 1")
-        }
-        */
+            serde_json::from_str::<SUT>("[1,1,1]").expect_err("should fail").to_string(),
+            "identified_vec::serde_error::IdentifiedVecOfSerdeFailure: Duplicate element at offset 1"
+        );
     }
 
     /*
