@@ -268,9 +268,14 @@ where
         self.order.iter().position(|i| i == id)
     }
 
-    fn _update_value(&mut self, element: Element, for_key: ID, inserting_at: usize) {
+    fn _update_value(
+        &mut self,
+        element: Element,
+        for_key: ID,
+        inserting_at: usize,
+    ) -> Option<Element> {
         self.order.insert(inserting_at, for_key.clone());
-        self.elements.insert(for_key, element);
+        self.elements.insert(for_key, element)
     }
 
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
@@ -295,10 +300,43 @@ where
         (true, at)
     }
 
+    /// Replace the member at the given index with a new value of the same identity.
+    ///
+    /// - Parameter item: The new value that should replace the original element. `item` must match
+    ///   the identity of the original value.
+    /// - Parameter index: The index of the element to be replaced.
+    /// - Returns: The original element that was replaced.
+    /// - Complexity: Amortized O(1).
     #[inline]
-    pub fn update_or_insert(&mut self, element: Element, at: usize) {
+    pub fn update_at(&mut self, element: Element, index: usize) -> Element {
+        let old_id = self
+            .order
+            .get(index)
+            .expect("Expected element at index {index}");
         let id = self.id(&element);
-        self._update_value(element, id, at)
+        assert_eq!(
+            &id, old_id,
+            "The replacement item must match the identity of the original"
+        );
+        return self
+            ._update_value(element, id, index)
+            .expect("Replaced old value");
+    }
+
+    /// Adds the given element into the set unconditionally, either inserting it at the specified
+    /// index, or replacing an existing value if it's already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Parameter index: The index at which to insert the new member if `item` isn't already in the
+    ///   set.
+    /// - Returns: The original element that was replaced by this operation, or `None` if the value was
+    ///   newly inserted into the collection.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn update_or_insert(&mut self, element: Element, index: usize) -> Option<Element> {
+        let id = self.id(&element);
+        self._update_value(element, id, index)
     }
 
     fn end_index(&self) -> usize {
@@ -310,8 +348,16 @@ where
         self.insert(element, self.end_index())
     }
 
+    /// Adds the given element to the `identified_vec` unconditionally, either appending it to the identified_vec, or
+    /// replacing an existing value if it's already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Returns: The original element that was replaced by this operation, or `None` if the value was
+    ///   appended to the end of the collection.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
     #[inline]
-    pub fn update_or_append(&mut self, element: Element) {
+    pub fn update_or_append(&mut self, element: Element) -> Option<Element> {
         self.update_or_insert(element, self.end_index())
     }
 
@@ -700,12 +746,12 @@ mod tests {
         assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
     }
 
+    #[test]
+    fn update_at() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(identified_vec.update_at(2, 1), 2)
+    }
     /*
-       #[test]
-       fn UpdateAt() {
-           let mut identified_vec = SUT::from_iter([1, 2, 3]);
-           assert_eq!(identified_vec.update(2, at: 1), 2)
-       }
 
        #[test]
        fn UpdateOrAppend() {
