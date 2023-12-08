@@ -949,6 +949,12 @@ mod tests {
     }
 
     #[test]
+    fn display() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(format!("{}", identified_vec), "[1, 2, 3]");
+    }
+
+    #[test]
     fn hash() {
         let identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(
