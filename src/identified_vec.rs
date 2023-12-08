@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::fmt::Debug;
+use std::fmt::{Debug, Display};
 use std::hash::Hash;
 
 use anyerror::AnyError;
@@ -452,6 +452,19 @@ where
 }
 
 ///////////////////////
+////      Display   ///
+///////////////////////
+impl<ID, Element> Display for IdentifiedVec<ID, Element>
+where
+    Element: Debug + Clone,
+    ID: Eq + Hash + Clone + Debug,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.elements().fmt(f)
+    }
+}
+
+///////////////////////
 ////    PRIVATE     ///
 ///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
@@ -875,6 +888,68 @@ mod tests {
         );
     }
 
+    #[test]
+    fn eq() {
+        #[derive(Eq, PartialEq, Clone, Hash, Debug)]
+        struct Foo {
+            id: &'static str,
+            value: String,
+        }
+        impl Foo {
+            fn with(id: &'static str, value: String) -> Self {
+                Self { id, value }
+            }
+            fn new() -> Self {
+                Self::with("id", "value".to_string())
+            }
+        }
+        impl Identifiable for Foo {
+            type ID = &'static str;
+
+            fn id(&self) -> Self::ID {
+                self.id
+            }
+        }
+
+        // Create `IdentifiedVec` using all of the initializers
+        let mut vecs: Vec<IdentifiedVecOf<Foo>> = vec![
+            IdentifiedVecOf::new(),
+            IdentifiedVecOf::new_identifying_element(|e| e.id()),
+            // IdentifiedVecOf::new_from_iter_uniquing_with([], |_, _, last| last),
+            // IdentifiedVecOf::new_from_iter_uniquing_ids_with([], |e| e.id(), |_, _, last| last),
+            // IdentifiedVecOf::new_from_iter_try_uniquing_ids_with([], |e| e.id(), |_,_,last| Ok(last)),
+        ];
+
+        vecs.iter().for_each(|l| {
+            vecs.iter().for_each(|r| {
+                assert_eq!(l, r);
+            })
+        });
+
+        // add an element to each identified_vec
+        vecs.iter_mut().for_each(|v| _ = v.append(Foo::new()));
+
+        vecs.iter().for_each(|l| {
+            vecs.iter().for_each(|r| {
+                assert_eq!(l, r);
+            })
+        });
+
+        // modify all arrays
+        vecs.iter_mut()
+            .enumerate()
+            .for_each(|(i, v)| _ = v.append(Foo::with("id2", format!("{i}"))));
+
+        vecs.iter().enumerate().for_each(|l| {
+            vecs.iter().enumerate().for_each(|r| {
+                if l.0 != r.0 {
+                    // println!("l='{}', r='{}'", l, r);
+                    assert_ne!(l, r)
+                }
+            })
+        });
+    }
+
     /*
 
        #[test]
@@ -906,46 +981,6 @@ mod tests {
            assert_eq!(identified_vec, [2, 1, 3])
        }
 
-
-       #[test]
-       fn Equatable() {
-           struct Foo: Identifiable, Equatable {
-               var id: String = "id"
-               var value: String = "value"
-           }
-           // Create arrays using all of the initializers
-           var arrays: [IdentifiedArray<String, Foo>] = [
-               IdentifiedArray<String, Foo>(),
-               IdentifiedArray<String, Foo>(uncheckedUniqueElements: [], id: \.id),
-               IdentifiedArray<String, Foo>(uniqueElements: [], id: \.id),
-               IdentifiedArray<String, Foo>(uncheckedUniqueElements: []),
-               IdentifiedArray<String, Foo>(uniqueElements: []),
-           ]
-           arrays.forEach({ lhs in
-               arrays.forEach({ rhs in
-                   assert_eq!(lhs, rhs)
-               })
-           })
-           // add an element to each identified_vec
-           arrays.indices.forEach({
-               arrays[$0].append(Foo())
-           })
-           arrays.forEach({ lhs in
-               arrays.forEach({ rhs in
-                   assert_eq!(lhs, rhs)
-               })
-           })
-           // modify all arrays
-           arrays.indices.forEach({
-               arrays[$0].append(Foo(id: "id2", value: "\($0)"))
-           })
-           arrays.enumerated().forEach({ lhsIndex, lhs in
-               arrays.enumerated().forEach({ rhsIndex, rhs in
-                   guard rhsIndex != lhsIndex else { return }
-                   XCTAssertNotEqual(lhs, rhs)
-               })
-           })
-       }
 
              #[test]
        fn CustomDebugStringConvertible() {
