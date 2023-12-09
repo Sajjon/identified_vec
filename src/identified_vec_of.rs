@@ -132,6 +132,7 @@ impl<'de, Element> Deserialize<'de> for IdentifiedVecOf<Element>
 where
     Element: Deserialize<'de> + Identifiable + Debug + Clone,
 {
+    #[cfg(not(tarpaulin_include))] // false negative
     fn deserialize<D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<IdentifiedVecOf<Element>, D::Error> {
