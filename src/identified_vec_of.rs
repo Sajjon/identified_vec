@@ -1,4 +1,7 @@
-use crate::{identifiable::Identifiable, identified_vec::IdentifiedVec};
+use crate::{
+    identifiable::Identifiable,
+    identified_vec::{ConflictResolutionChoice, IdentifiedVec},
+};
 
 use anyerror::AnyError;
 use std::collections::HashMap;
@@ -66,14 +69,14 @@ where
     ///
     /// - Parameters:
     ///   - elements: A sequence of elements to use for the new `identified_vec`.
-    ///   - combine: Closure trying to combine elements `(cur, new)` with duplicate ids, returning which element to use, or `Err``
+    ///   - combine: Closure trying to combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`), or `Err` if you prefer.
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
     pub fn new_from_iter_try_uniquing_with<I>(
         elements: I,
-        combine: fn(usize, Element, Element) -> Result<Element, AnyError>,
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, AnyError>,
     ) -> Result<Self, AnyError>
     where
         I: IntoIterator<Item = Element>,
@@ -92,14 +95,14 @@ where
     ///
     /// - Parameters:
     ///   - elements: A sequence of elements to use for the new `identified_vec`.
-    ///   - combine: Closure to combine elements `(cur, new)` with duplicate ids, returning which element to use
+    ///   - combine: Closure used combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`)
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
     pub fn new_from_iter_uniquing_with<I>(
         elements: I,
-        combine: fn(usize, Element, Element) -> Element,
+        combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
     ) -> Self
     where
         I: IntoIterator<Item = Element>,
@@ -133,7 +136,7 @@ where
         deserializer: D,
     ) -> Result<IdentifiedVecOf<Element>, D::Error> {
         let elements = Vec::<Element>::deserialize(deserializer)?;
-        IdentifiedVecOf::<Element>::new_from_iter_try_uniquing_with(elements, |idx, _, _| {
+        IdentifiedVecOf::<Element>::new_from_iter_try_uniquing_with(elements, |(idx, _, _)| {
             Err(AnyError::new(
                 &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx),
             ))

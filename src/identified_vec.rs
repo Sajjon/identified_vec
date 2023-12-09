@@ -4,6 +4,17 @@ use std::hash::{Hash, Hasher};
 
 use anyerror::AnyError;
 
+/// Representation of a choice in a conflict resolution
+/// where two elements with the same ID exists, if `ChooseFirst`,
+/// is specified the first/current/existing value will be used, but
+/// if `ChooseLast` is specified then the new/last will be replace
+/// the first/current/existing.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum ConflictResolutionChoice {
+    ChooseFirst,
+    ChooseLast,
+}
+
 /// An ordered collection of identifiable elements.
 ///
 /// Similar to the standard `Vec`, identified vecs maintain their elements in a particular
@@ -92,7 +103,6 @@ use anyerror::AnyError;
 #[derive(Debug, Clone)]
 pub struct IdentifiedVec<ID, Element>
 where
-    Element: Debug + Clone,
     ID: Eq + Hash + Clone + Debug,
 {
     /// The holder of the insertion order
@@ -110,7 +120,6 @@ where
 ///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
-    Element: Debug + Clone,
     ID: Eq + Hash + Clone + Debug,
 {
     /// Constructs a new, empty `IdentifiedVec<ID, Element>` with the specified
@@ -123,7 +132,15 @@ where
             _id_of_element: id_of_element,
         }
     }
+}
 
+///////////////////////
+////  Constructors  ///
+///////////////////////
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
     /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
     /// determine the element for any elements with duplicate identity.
     ///
@@ -136,7 +153,7 @@ where
     /// - Parameters:
     ///   - elements: A sequence of elements to use for the new `identified_vec`.
     ///   - id_of_element: The function which extracts the identifier for an element,
-    ///   - combine: Closure trying to combine elements `(cur, new)` with duplicate ids, returning which element to use, or `Err``
+    ///   - combine: Closure trying to combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`), or `Err` if you prefer.
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
@@ -144,7 +161,7 @@ where
     pub fn new_from_iter_try_uniquing_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn(usize, Element, Element) -> Result<Element, AnyError>,
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, AnyError>,
     ) -> Result<Self, AnyError>
     where
         I: IntoIterator<Item = Element>,
@@ -154,16 +171,22 @@ where
 
         for element in elements.into_iter() {
             let id = id_of_element(&element);
-            match _elements.get(&id) {
-                Some(existing) => match combine(_order.len(), existing.to_owned(), element) {
+            match _elements.remove(&id) {
+                Some(existing) => match combine((_order.len(), &existing, &element)) {
                     Err(e) => return Err(e),
-                    Ok(selected) => {
-                        _elements.entry(id.clone()).and_modify(|e| *e = selected);
-                    }
+                    Ok(choice) => match choice {
+                        ConflictResolutionChoice::ChooseFirst => {
+                            _elements.insert(id.clone(), existing)
+                        }
+                        ConflictResolutionChoice::ChooseLast => {
+                            _elements.insert(id.clone(), element)
+                        }
+                    },
                 },
                 None => {
                     _elements.insert(id.clone(), element);
                     _order.push(id);
+                    None
                 }
             };
         }
@@ -187,7 +210,7 @@ where
     /// - Parameters:
     ///   - elements: A sequence of elements to use for the new `identified_vec`.
     ///   - id_of_element: The function which extracts the identifier for an element,
-    ///   - combine: Closure used combine elements `(cur, new)` with duplicate ids, returning which element to use.
+    ///   - combine: Closure used combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`)
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
@@ -195,7 +218,7 @@ where
     pub fn new_from_iter_uniquing_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn(usize, Element, Element) -> Element,
+        combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
     ) -> Self
     where
         I: IntoIterator<Item = Element>,
@@ -205,14 +228,15 @@ where
 
         for element in elements.into_iter() {
             let id = id_of_element(&element);
-            match _elements.get(&id) {
-                Some(existing) => {
-                    let selected = combine(_order.len(), existing.to_owned(), element);
-                    _elements.entry(id.clone()).and_modify(|e| *e = selected);
-                }
+            match _elements.remove(&id) {
+                Some(existing) => match combine((_order.len(), &existing, &element)) {
+                    ConflictResolutionChoice::ChooseFirst => _elements.insert(id.clone(), existing),
+                    ConflictResolutionChoice::ChooseLast => _elements.insert(id.clone(), element),
+                },
                 None => {
                     _elements.insert(id.clone(), element);
                     _order.push(id);
+                    None
                 }
             };
         }
@@ -231,7 +255,6 @@ where
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
-    Element: Debug + Clone,
 {
     /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<ID>`.
     ///
@@ -310,10 +333,10 @@ where
     ///
     /// - Complexity: O(1)
     #[inline]
-    pub fn elements(&self) -> Vec<Element> {
-        let mut elements_ordered = Vec::<Element>::new();
+    pub fn elements(&self) -> Vec<&Element> {
+        let mut elements_ordered = Vec::<&Element>::new();
         for id in &self.order {
-            elements_ordered.push(self.elements.get(id).expect("element").clone());
+            elements_ordered.push(self.elements.get(id).expect("element"));
         }
         elements_ordered
     }
@@ -335,6 +358,84 @@ where
     pub fn get(&self, id: &ID) -> Option<&Element> {
         self.elements.get(id)
     }
+
+    /// Returns a reference to the element at index if found, else `None`.
+    #[inline]
+    pub fn get_at_index(&self, index: usize) -> Option<&Element> {
+        self.order.get(index).and_then(|id| self.get(id))
+    }
+}
+
+pub struct IdentifiedVecIterator<'a, ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    identified_vec: &'a IdentifiedVec<ID, Element>,
+    index: usize,
+}
+
+impl<'a, ID, Element> Iterator for IdentifiedVecIterator<'a, ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    type Item = &'a Element;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.index < self.identified_vec.len() {
+            let id = Some(&self.identified_vec.order[self.index]).unwrap();
+            self.index += 1;
+            return self.identified_vec.get(id);
+        } else {
+            None
+        }
+    }
+}
+
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    pub fn iter(&self) -> IdentifiedVecIterator<ID, Element> {
+        IdentifiedVecIterator {
+            identified_vec: self,
+            index: 0,
+        }
+    }
+}
+pub struct IdentifiedVecIntoIterator<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    identified_vec: IdentifiedVec<ID, Element>,
+}
+
+impl<ID, Element> Iterator for IdentifiedVecIntoIterator<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    type Item = Element;
+
+    fn next(&mut self) -> Option<Self::Item> {
+        if self.identified_vec.len() == 0 {
+            return None;
+        }
+        let result = self.identified_vec.remove_at(0);
+        Some(result)
+    }
+}
+
+impl<ID, Element> IntoIterator for IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    type Item = Element;
+    type IntoIter = IdentifiedVecIntoIterator<ID, Element>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        Self::IntoIter {
+            identified_vec: self,
+        }
+    }
 }
 
 ///////////////////////
@@ -343,7 +444,6 @@ where
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
-    Element: Debug + Clone,
 {
     /// Append a new member to the end of the `identified_vec`, if the `identified_vec` doesn't already contain it.
     ///
@@ -455,7 +555,6 @@ where
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
-    Element: Debug + Clone,
 {
     /// Removes the element identified by the given id from the `identified_vec`.
     ///
@@ -487,7 +586,7 @@ where
     ///     IdentifiedVecOf::<User>::from_iter([User::new("u_42"), User::new("u_1729")]);
     ///
     /// assert_eq!(users.remove_by_id(&"u_1729"), Some(User::new("u_1729")));
-    /// assert_eq!(users.elements(), [User::new("u_42")]);
+    /// assert_eq!(users.elements(), [&User::new("u_42")]);
     /// assert_eq!(users.remove_by_id(&"u_1337"), None);
     /// assert_eq!(users.len(), 1);
     /// ```
@@ -565,7 +664,7 @@ where
 ///////////////////////
 impl<ID, Element> PartialEq for IdentifiedVec<ID, Element>
 where
-    Element: PartialEq + Debug + Clone,
+    Element: PartialEq,
     ID: Eq + Hash + Clone + Debug,
 {
     fn eq(&self, other: &Self) -> bool {
@@ -575,7 +674,7 @@ where
 
 impl<ID, Element> Eq for IdentifiedVec<ID, Element>
 where
-    Element: Eq + Debug + Clone,
+    Element: Eq,
     ID: Eq + Hash + Clone + Debug,
 {
 }
@@ -585,7 +684,7 @@ where
 ///////////////////////
 impl<ID, Element> Hash for IdentifiedVec<ID, Element>
 where
-    Element: Hash + Debug + Clone,
+    Element: Hash,
     ID: Eq + Hash + Clone + Debug,
 {
     fn hash<H: Hasher>(&self, state: &mut H) {
@@ -598,7 +697,7 @@ where
 ///////////////////////
 impl<ID, Element> Display for IdentifiedVec<ID, Element>
 where
-    Element: Debug + Clone,
+    Element: Debug,
     ID: Eq + Hash + Clone + Debug,
 {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -612,7 +711,6 @@ where
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
-    Element: Debug + Clone,
 {
     /// Next index for element appended
     #[inline]
@@ -643,15 +741,15 @@ where
         let value = element;
         let key = for_key;
 
-        if self.contains_id(&key) {
-            let old = self.elements.get(&key).cloned();
-            self.elements.entry(key.clone()).and_modify(|e| *e = value);
-            return old;
-        }
-
+        let maybe_old = self.elements.remove(&key);
         self.elements.insert(key.clone(), value);
-        self.order.push(key);
-        return None;
+
+        if maybe_old.is_some() {
+            return maybe_old;
+        } else {
+            self.order.push(key);
+            None
+        }
     }
 
     #[inline]
@@ -670,8 +768,8 @@ where
             self.elements.insert(id.clone(), value);
             return (None, offset);
         }
-        let old = self.elements.get(&id).expect("existing element").clone();
-        self.elements.entry(id.clone()).and_modify(|e| *e = value);
+        let old = self.elements.remove(&id).expect("existing element");
+        self.elements.insert(id, value);
         return (Some(old), offset);
     }
 }
@@ -681,8 +779,8 @@ where
 ///////////////////////
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
+    Element: Debug,
     ID: Eq + Hash + Clone + Debug,
-    Element: Debug + Clone,
 {
     #[cfg(debug_assertions)]
     pub fn debug(&self) {
@@ -701,7 +799,8 @@ mod tests {
     use std::{cell::RefCell, collections::HashSet, fmt::Debug};
 
     use crate::{
-        identifiable::Identifiable, identified_vec::IdentifiedVec,
+        identifiable::Identifiable,
+        identified_vec::{ConflictResolutionChoice, IdentifiedVec},
         identified_vec_of::IdentifiedVecOf,
     };
 
@@ -770,7 +869,28 @@ mod tests {
     fn elements() {
         let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
         let identified_vec = Users::from_iter(vec.clone());
-        assert_eq!(identified_vec.elements(), vec);
+        assert_eq!(
+            identified_vec.elements(),
+            vec![&User::blob(), &User::blob_jr(), &User::blob_sr()]
+        );
+    }
+
+    #[test]
+    fn into_iter() {
+        let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
+        let identified_vec = Users::from_iter(vec.clone());
+        for (idx, element) in identified_vec.into_iter().enumerate() {
+            assert_eq!(vec[idx], element)
+        }
+    }
+
+    #[test]
+    fn iter() {
+        let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
+        let identified_vec = Users::from_iter(vec.clone());
+        for (idx, element) in identified_vec.iter().enumerate() {
+            assert_eq!(&vec[idx], element)
+        }
     }
 
     #[test]
@@ -824,6 +944,8 @@ mod tests {
                 User::new(2, "Blob"),
                 User::new(4, "Blob, Sr."),
             ]
+            .iter()
+            .collect::<Vec<&User>>()
         );
     }
 
@@ -832,7 +954,6 @@ mod tests {
         let identified_vec = SUT::from_iter([1, 2, 3]);
         assert!(identified_vec.contains(&2))
     }
-
     #[test]
     fn index_id() {
         let identified_vec = SUT::from_iter([1, 2, 3]);
@@ -843,14 +964,14 @@ mod tests {
     fn remove_element() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.remove(&2), Some(2));
-        assert_eq!(identified_vec.elements(), [1, 3])
+        assert_eq!(identified_vec.elements(), [&1, &3]);
     }
 
     #[test]
     fn remove_by_id() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.remove_by_id(&2), Some(2));
-        assert_eq!(identified_vec.elements(), [1, 3])
+        assert_eq!(identified_vec.elements(), [&1, &3]);
     }
 
     #[test]
@@ -873,12 +994,12 @@ mod tests {
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
-            |_, cur, _| cur,
+            |_| ConflictResolutionChoice::ChooseFirst,
         );
 
         assert_eq!(
             conservative.elements(),
-            [Model::new(1, "A"), Model::new(2, "B")]
+            [&Model::new(1, "A"), &Model::new(2, "B")]
         );
 
         let progressive = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
@@ -888,12 +1009,12 @@ mod tests {
                 Model::new(1, "AAAA"),
             ],
             |e| e.id,
-            |_, _, new| new,
+            |_| ConflictResolutionChoice::ChooseLast,
         );
 
         assert_eq!(
             progressive.elements(),
-            [Model::new(1, "AAAA"), Model::new(2, "B")]
+            [&Model::new(1, "AAAA"), &Model::new(2, "B")]
         )
     }
 
@@ -923,12 +1044,12 @@ mod tests {
                 Model::new(2, "B"),
                 Model::new(1, "AAAA"),
             ],
-            |_, cur, _| cur,
+            |_| ConflictResolutionChoice::ChooseFirst,
         );
 
         assert_eq!(
             conservative.elements(),
-            [Model::new(1, "A"), Model::new(2, "B")]
+            [&Model::new(1, "A"), &Model::new(2, "B")]
         );
 
         let progressive = IdentifiedVecOf::<Model>::new_from_iter_uniquing_with(
@@ -937,12 +1058,12 @@ mod tests {
                 Model::new(2, "B"),
                 Model::new(1, "AAAA"),
             ],
-            |_, _, new| new,
+            |_| ConflictResolutionChoice::ChooseLast,
         );
 
         assert_eq!(
             progressive.elements(),
-            [Model::new(1, "AAAA"), Model::new(2, "B")]
+            [&Model::new(1, "AAAA"), &Model::new(2, "B")]
         )
     }
 
@@ -952,18 +1073,18 @@ mod tests {
         let (mut inserted, mut index) = identified_vec.append(4);
         assert!(inserted);
         assert_eq!(index, 3);
-        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+        assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
         (inserted, index) = identified_vec.append(2);
         assert_eq!(inserted, false);
         assert_eq!(index, 1);
-        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+        assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
     }
 
     #[test]
     fn append_other() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         identified_vec.append_other([1, 4, 3, 5]);
-        assert_eq!(identified_vec.elements(), [1, 2, 3, 4, 5])
+        assert_eq!(identified_vec.elements(), [&1, &2, &3, &4, &5])
     }
 
     #[test]
@@ -972,11 +1093,11 @@ mod tests {
         let (mut inserted, mut index) = identified_vec.insert(0, 0);
         assert!(inserted);
         assert_eq!(index, 0);
-        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+        assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
         (inserted, index) = identified_vec.insert(2, 0);
         assert_eq!(inserted, false);
         assert_eq!(index, 2);
-        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+        assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
     }
 
     #[test]
@@ -989,7 +1110,7 @@ mod tests {
     fn update_or_append() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.update_or_append(4), None);
-        assert_eq!(identified_vec.elements(), [1, 2, 3, 4]);
+        assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
         assert_eq!(identified_vec.update_or_append(2), Some(2));
     }
 
@@ -999,18 +1120,18 @@ mod tests {
         let (mut original_member, mut index) = identified_vec.update_or_insert(0, 0);
         assert_eq!(original_member, None);
         assert_eq!(index, 0);
-        assert_eq!(identified_vec.elements(), [0, 1, 2, 3]);
+        assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
         (original_member, index) = identified_vec.update_or_insert(2, 0);
         assert_eq!(original_member, Some(2));
         assert_eq!(index, 2);
-        assert_eq!(identified_vec.elements(), [0, 1, 2, 3])
+        assert_eq!(identified_vec.elements(), [&0, &1, &2, &3])
     }
 
     #[test]
     fn remove_at_offsets() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         identified_vec.remove_at_offsets([0, 2]);
-        assert_eq!(identified_vec.elements(), [2])
+        assert_eq!(identified_vec.elements(), [&2])
     }
 
     #[test]
@@ -1060,9 +1181,20 @@ mod tests {
         let mut vecs: Vec<IdentifiedVecOf<Foo>> = vec![
             IdentifiedVecOf::new(),
             IdentifiedVecOf::new_identifying_element(|e| e.id()),
-            // IdentifiedVecOf::new_from_iter_uniquing_with([], |_, _, last| last),
-            // IdentifiedVecOf::new_from_iter_uniquing_ids_with([], |e| e.id(), |_, _, last| last),
-            // IdentifiedVecOf::new_from_iter_try_uniquing_ids_with([], |e| e.id(), |_,_,last| Ok(last)),
+            IdentifiedVecOf::new_from_iter_uniquing_with([], |_| {
+                ConflictResolutionChoice::ChooseLast
+            }),
+            IdentifiedVecOf::new_from_iter_uniquing_ids_with(
+                [],
+                |e| e.id(),
+                |_| ConflictResolutionChoice::ChooseLast,
+            ),
+            IdentifiedVecOf::new_from_iter_try_uniquing_ids_with(
+                [],
+                |e: &Foo| e.id(),
+                |_| Ok(ConflictResolutionChoice::ChooseLast),
+            )
+            .unwrap(),
         ];
 
         vecs.iter().for_each(|l| {
