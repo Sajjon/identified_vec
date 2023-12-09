@@ -36,15 +36,23 @@ pub enum ConflictResolutionChoice {
 /// use identified_vec::identified_vec::IdentifiedVec;
 /// use identified_vec::identifiable::Identifiable;
 /// use identified_vec::identified_vec_of::IdentifiedVecOf;
+/// use std::cell::RefCell;
 ///
-/// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
+/// #[derive(Eq, PartialEq, Clone, Debug)]
 /// struct User {
 ///     id: &'static str,
+///     name: RefCell<&'static str>,
 /// }
 ///
 /// impl User {
-///     fn new(id: &'static str) -> Self {
-///         Self { id }
+///     fn new(id: &'static str, name: &'static str) -> Self {
+///         Self {
+///             id,
+///             name: RefCell::new(name),
+///         }
+///     }
+///     fn name(&self) -> &'static str {
+///         *self.name.borrow()
 ///     }
 /// }
 ///
@@ -55,10 +63,83 @@ pub enum ConflictResolutionChoice {
 ///     }
 /// }
 ///
-/// let mut users =
-///     IdentifiedVecOf::<User>::from_iter([User::new("u_42"), User::new("u_1729")]);
+/// let mut users = IdentifiedVecOf::<User>::from_iter([
+///     User::new("u_42", "Satoshi Nakamoto"),
+///     User::new("u_1337", "Leia Skywalker"),
+/// ]);
 ///
-/// assert_eq!(users.index_of_id(&"u_1729"), Some(1));
+/// assert_eq!(
+///     users.get(&"u_42").map(|u| u.name()),
+///     Some("Satoshi Nakamoto")
+/// );
+/// assert_eq!(
+///     users.get_at_index(1).map(|u| u.name()),
+///     Some("Leia Skywalker")
+/// );
+/// users.append(User::new("u_237", "Alan Turing"));
+/// assert_eq!(
+///     users.elements(),
+///     [
+///         User::new("u_42", "Satoshi Nakamoto"),
+///         User::new("u_1337", "Leia Skywalker"),
+///         User::new("u_237", "Alan Turing"),
+///     ]
+///     .iter()
+///     .collect::<Vec<&User>>()
+/// );
+///
+/// // Element with same ID is not appended:
+/// users.append(User::new("u_42", "Tom Mervolo Dolder"));
+/// assert_eq!(
+///     users.elements(),
+///     [
+///         User::new("u_42", "Satoshi Nakamoto"),
+///         User::new("u_1337", "Leia Skywalker"),
+///         User::new("u_237", "Alan Turing"),
+///     ]
+///     .iter()
+///     .collect::<Vec<&User>>()
+/// );
+///
+/// // Element with same ID replaces existing if an `update_*` method is used:
+/// // e.g. `update_or_insert`:
+/// users.update_or_insert(User::new("u_42", "Tom Mervolo Dolder"), 0);
+/// assert_eq!(
+///     users.elements(),
+///     [
+///         User::new("u_42", "Tom Mervolo Dolder"),
+///         User::new("u_1337", "Leia Skywalker"),
+///         User::new("u_237", "Alan Turing"),
+///     ]
+///     .iter()
+///     .collect::<Vec<&User>>()
+/// );
+///
+/// // or `update_or_append`
+/// users.update_or_append(User::new("u_237", "Marie Curie"));
+/// assert_eq!(
+///     users.elements(),
+///     [
+///         User::new("u_42", "Tom Mervolo Dolder"),
+///         User::new("u_1337", "Leia Skywalker"),
+///         User::new("u_237", "Marie Curie"),
+///     ]
+///     .iter()
+///     .collect::<Vec<&User>>()
+/// );
+///
+/// // or mutate with `get_mut(id)`
+/// *users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
+/// assert_eq!(
+///     users.elements(),
+///     [
+///         User::new("u_42", "Tom Mervolo Dolder"),
+///         User::new("u_1337", "Yoda"),
+///         User::new("u_237", "Marie Curie"),
+///     ]
+///     .iter()
+///     .collect::<Vec<&User>>()
+/// );
 /// ```
 ///
 /// Or you can provide a closure that describes an element's identity:
@@ -796,7 +877,7 @@ where
 #[cfg(test)]
 mod tests {
 
-    use std::{cell::RefCell, collections::HashSet, fmt::Debug};
+    use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
     use crate::{
         identifiable::Identifiable,
