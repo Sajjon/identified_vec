@@ -608,14 +608,14 @@ where
         }
     }
 
-    /// Removes the given element from the `indentified_vec`.
+    /// Removes the given element from the `identified_vec`.
     ///
-    /// If the element is found in the `indentified_vec`, this method returns the element.
+    /// If the element is found in the `identified_vec`, this method returns the element.
     ///
-    /// If the element isn't found in the `indentified_vec`, `remove` returns `None`.
+    /// If the element isn't found in the `identified_vec`, `remove` returns `None`.
     ///
     /// - Parameter element: The element to remove.
-    /// - Returns: The value that was removed, or `None` if the element was not present in the `indentified_vec`.
+    /// - Returns: The value that was removed, or `None` if the element was not present in the `identified_vec`.
     /// - Complexity: O(`count`)
     #[inline]
     pub fn remove(&mut self, element: &Element) -> Option<Element> {
@@ -863,6 +863,14 @@ mod tests {
     fn ids() {
         let identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.ids(), &[1, 2, 3])
+    }
+
+    #[test]
+    fn debug_str() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert!(identified_vec
+            .debug_str()
+            .starts_with("order: [1, 2, 3]\nelements: {"),)
     }
 
     #[test]
