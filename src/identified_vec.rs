@@ -1226,6 +1226,37 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(expected = "Expected element at index {index}")]
+    fn update_at_expect_panic_unknown_index() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        identified_vec.update_at(0, 999);
+    }
+
+    #[test]
+    #[should_panic(expected = "The replacement item must match the identity of the original")]
+    fn update_at_expect_panic_other_id() {
+        struct User {
+            id: &'static str,
+            name: &'static str,
+        }
+        impl Identifiable for User {
+            type ID = &'static str;
+            fn id(&self) -> Self::ID {
+                self.id
+            }
+        }
+        impl User {
+            fn new(id: &'static str, name: &'static str) -> Self {
+                Self { id, name }
+            }
+        }
+        let mut identified_vec = IdentifiedVecOf::<User>::new();
+        identified_vec.append(User::new("u_42", "Zelda"));
+        assert_eq!(identified_vec.get_at_index(0).unwrap().name, "Zelda");
+        identified_vec.update_at(User::new("u_999999", "Zelda"), 0);
+    }
+
+    #[test]
     fn update_or_append() {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         assert_eq!(identified_vec.update_or_append(4), None);
@@ -1251,6 +1282,13 @@ mod tests {
         let mut identified_vec = SUT::from_iter([1, 2, 3]);
         identified_vec.remove_at_offsets([0, 2]);
         assert_eq!(identified_vec.elements(), [&2])
+    }
+
+    #[test]
+    #[should_panic(expected = "Precondition failure, index out of bounds")]
+    fn remove_at_out_of_bounds() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        identified_vec.remove_at(999);
     }
 
     #[test]
