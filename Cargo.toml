@@ -2,6 +2,8 @@
 name = "identified_vec"
 version = "0.1.0"
 edition = "2021"
+description = "Like HashSet but retaining INSERTION order and without `Hash` requirement on the Element type."
+license = "MIT"
 
 [dependencies]
 anyerror = "0.1.12"
