@@ -238,6 +238,7 @@ where
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
+    #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     pub fn new_from_iter_try_uniquing_ids_with<I>(
         elements: I,
@@ -295,6 +296,7 @@ where
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
+    #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     pub fn new_from_iter_uniquing_ids_with<I>(
         elements: I,
@@ -603,6 +605,7 @@ where
     /// - Complexity: The operation is expected to perform amortized O(`self.count`) copy, hash, and
     ///   compare operations on the `ID` type, if it implements high-quality hashing. (Insertions need
     ///   to make room in the storage identified_vec to add the inserted element.)
+    #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     pub fn insert(&mut self, element: Element, at: usize) -> (bool, usize) {
         let id = self.id(&element);
@@ -675,6 +678,7 @@ where
     /// - Parameter id: The id of the element to be removed from the `identified_vec`.
     /// - Returns: The element that was removed, or `None` if the element was not present in the array.
     /// - Complexity: O(`count`)
+    #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     pub fn remove_by_id(&mut self, id: &ID) -> Option<Element> {
         match self.index_of_id(id) {
@@ -806,6 +810,7 @@ where
     }
 
     /// Inserting ID at an index, returning if it did, if not, the index of the existing.
+    #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     fn _insert_id_at(&mut self, id: ID, index: usize) -> (bool, usize) {
         match self.index_of_id(&id) {
@@ -863,6 +868,7 @@ where
     Element: Debug,
     ID: Eq + Hash + Clone + Debug,
 {
+    #[cfg(not(tarpaulin_include))]
     #[cfg(debug_assertions)]
     pub fn debug(&self) {
         println!("{}", self.debug_str());
@@ -877,12 +883,15 @@ where
 #[cfg(test)]
 mod tests {
 
-    use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
+    use std::{cell::RefCell, collections::HashSet, fmt::Debug};
+
+    use anyerror::AnyError;
 
     use crate::{
         identifiable::Identifiable,
         identified_vec::{ConflictResolutionChoice, IdentifiedVec},
         identified_vec_of::IdentifiedVecOf,
+        serde_error::IdentifiedVecOfSerdeFailure,
     };
 
     #[derive(Eq, PartialEq, Clone)]
@@ -1043,6 +1052,27 @@ mod tests {
         let identified_vec = SUT::from_iter([1, 2, 3]);
         assert!(identified_vec.contains(&2))
     }
+
+    #[test]
+    fn remove_by_id_not_present() {
+        let mut identified_vec = SUT::from_iter([1, 2, 3]);
+        assert!(identified_vec.remove_by_id(&5).is_none());
+    }
+
+    #[test]
+    fn get_at_index() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert_eq!(identified_vec.get_at_index(2), Some(&3));
+        assert_eq!(identified_vec.get_at_index(999), None);
+    }
+
+    #[test]
+    fn contains_id() {
+        let identified_vec = SUT::from_iter([1, 2, 3]);
+        assert!(identified_vec.contains_id(&1));
+        assert_eq!(identified_vec.contains_id(&999), false);
+    }
+
     #[test]
     fn index_id() {
         let identified_vec = SUT::from_iter([1, 2, 3]);
@@ -1241,6 +1271,19 @@ mod tests {
             serde_json::from_str::<SUT>("[1,1,1]").expect_err("should fail").to_string(),
             "identified_vec::serde_error::IdentifiedVecOfSerdeFailure: Duplicate element at offset 1"
         );
+
+        assert!(serde_json::from_str::<SUT>("invalid").is_err(),);
+    }
+
+    #[test]
+    fn serde_via_vec() {
+        let vec = vec![1, 2, 3];
+        let json_from_vec = serde_json::to_value(vec).unwrap();
+        let mut identified_vec = serde_json::from_value::<SUT>(json_from_vec).unwrap();
+        identified_vec.append(9);
+        let json_from_identified_vec = serde_json::to_value(identified_vec).unwrap();
+        let vec_from_json = serde_json::from_value::<Vec<i32>>(json_from_identified_vec).unwrap();
+        assert_eq!(vec_from_json, vec![1, 2, 3, 9]);
     }
 
     #[test]
@@ -1285,6 +1328,28 @@ mod tests {
             )
             .unwrap(),
         ];
+
+        assert_eq!(
+            IdentifiedVecOf::new_from_iter_try_uniquing_ids_with(
+                [Foo::new(), Foo::new()],
+                |e: &Foo| e.id(),
+                |_| Err(AnyError::new(
+                    &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
+                )),
+            ),
+            Err(AnyError::new(
+                &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
+            ))
+        );
+
+        assert_eq!(
+            IdentifiedVecOf::new_from_iter_try_uniquing_with([Foo::new(), Foo::new()], |_| Err(
+                AnyError::new(&IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
+            ),),
+            Err(AnyError::new(
+                &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
+            ))
+        );
 
         vecs.iter().for_each(|l| {
             vecs.iter().for_each(|r| {
