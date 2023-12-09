@@ -414,7 +414,7 @@ where
 
     /// A read-only collection view for the elements contained in this array, as a `Vec<Elements>`.
     ///
-    /// - Complexity: O(1)
+    /// - Complexity: O(n)
     #[inline]
     pub fn elements(&self) -> Vec<&Element> {
         let mut elements_ordered = Vec::<&Element>::new();
