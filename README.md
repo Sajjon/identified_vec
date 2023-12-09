@@ -134,7 +134,18 @@ let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 ```
 
 # Motivation
-None of the std collections `BTreeSet` and `HashSet` retain insertion order, `Vec` retains insertion order, however, it allows for duplicates. So if you want a collection of unique elements (Set-like) that does retain insertion order, `IdentifiedVec` suits your needs. Even better, the elements does not need to be to impl `Hash` nor ` Ord``.
+
+None of the std collections `BTreeSet` and `HashSet` retain insertion order, `Vec` retains insertion order, however, it allows for duplicates. So if you want a collection of unique elements (Set-like) that does retain insertion order, `IdentifiedVec` suits your needs. Even better, the elements does not need to be to impl `Hash` nor ` Ord`.
+
+# Features
+
+## Serde
+
+The `IdentifiedVecOf` type (which `Element` impl `Identifiable` trait) is `serde::Serializable` and `serde::Deserializable` as `Vec`.
+
+```toml
+identified_vec = { version = "0.1.2", features = ["serde"] }
+```
 
 ## Implementation Details
 
