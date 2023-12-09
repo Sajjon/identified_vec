@@ -1,6 +1,6 @@
 [package]
 name = "identified_vec"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Like HashSet but retaining INSERTION order and without `Hash` requirement on the Element type."
 license = "MIT"
