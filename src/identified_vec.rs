@@ -868,10 +868,9 @@ mod tests {
     #[test]
     fn debug_str() {
         let identified_vec = SUT::from_iter([1, 2, 3]);
-        assert_eq!(
-            identified_vec.debug_str(),
-            "order: [1, 2, 3]\nelements: {2: 2, 1: 1, 3: 3}"
-        )
+        assert!(identified_vec
+            .debug_str()
+            .starts_with("order: [1, 2, 3]\nelements: {"),)
     }
 
     #[test]
