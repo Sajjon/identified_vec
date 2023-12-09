@@ -4,9 +4,91 @@ use std::hash::{Hash, Hasher};
 
 use anyerror::AnyError;
 
-/// A collection of unique elements preserving **insertion order**,
-/// do NOT use this if you need something memory efficient, this collection
-/// is not optimized for that.
+/// An ordered collection of identifiable elements.
+///
+/// Similar to the standard `Vec`, identified vecs maintain their elements in a particular
+/// user-specified order, and they support efficient random access traversal of their members.
+/// However, unlike `Vec`, identified vecs introduce the ability to uniquely identify elements,
+/// using a hash table to ensure that no two elements have the same identity, and to efficiently
+/// look up elements corresponding to specific identifiers.
+///
+/// `IdentifiedVec` is a useful alternative to `Vec` when you need to be able to efficiently
+/// access unique elements by a stable identifier. It is also a useful alternative to `BTreeSet`,
+/// where the `Ord` requirement may be too strict, an a useful alternative to `HashSet` where
+/// `Hash` requirement may be too strict.
+///
+/// You can create an identified vec with any element type that implements the `Identifiable`
+/// trait.
+///
+/// ```
+/// extern crate identified_vec;
+/// use identified_vec::identified_vec::IdentifiedVec;
+/// use identified_vec::identifiable::Identifiable;
+/// use identified_vec::identified_vec_of::IdentifiedVecOf;
+///
+/// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
+/// struct User {
+///     id: &'static str,
+/// }
+///
+/// impl User {
+///     fn new(id: &'static str) -> Self {
+///         Self { id }
+///     }
+/// }
+///
+/// impl Identifiable for User {
+///     type ID = &'static str;
+///     fn id(&self) -> Self::ID {
+///         self.id
+///     }
+/// }
+///
+/// let mut users =
+///     IdentifiedVecOf::<User>::from_iter([User::new("u_42"), User::new("u_1729")]);
+///
+/// assert_eq!(users.index_of_id(&"u_1729"), Some(1));
+/// ```
+///
+/// Or you can provide a closure that describes an element's identity:
+///
+/// ```
+/// /// extern crate identified_vec;
+/// use identified_vec::identified_vec::IdentifiedVec;
+/// use identified_vec::identifiable::Identifiable;
+/// use identified_vec::identified_vec_of::IdentifiedVecOf;
+///
+/// let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
+/// ```
+///
+/// # Motivation
+/// None of the std collections `BTreeSet` and `HashSet` retain insertion order, `Vec` retains
+/// insertion order, however, it allows for duplicates. So if you want a collection of unique
+/// elements (Set-like) that does retain insertion order, `IdentifiedVec` suits your needs.
+/// Even better, the elements does not need to be to impl `Hash` nor `Ord``.
+///
+/// # Performance
+///
+/// Like the standard `HashMap` type, the performance of hashing operations in
+/// `IdentifiedVec` is highly sensitive to the quality of hashing implemented by the `ID`
+/// type. Failing to correctly implement hashing can easily lead to unacceptable performance, with
+/// the severity of the effect increasing with the size of the underlying hash table.
+///
+/// In particular, if a certain set of elements all produce the same hash value, then hash table
+/// lookups regress to searching an element in an unsorted array, i.e., a linear operation. To
+/// ensure hashed collection types exhibit their target performance, it is important to ensure that
+/// such collisions cannot be induced merely by adding a particular list of members to the set.
+///
+/// When `ID` implements `Hash` correctly, testing for membership in an ordered set is expected
+/// to take O(1) equality checks on average. Hash collisions can still occur organically, so the
+/// worst-case lookup performance is technically still O(*n*) (where *n* is the size of the set);
+/// however, long lookup chains are unlikely to occur in practice.
+///
+/// ## Implementation Details
+///
+/// An identified vec consists of a Vec and a HashMap of id-element pairs. An element's id
+/// should not be mutated in place, as it will drift from its associated dictionary key. Identified
+/// bec is designed to avoid this invariant. Mutating an element's id will result in a runtime error.
 #[derive(Debug, Clone)]
 pub struct IdentifiedVec<ID, Element>
 where
@@ -33,6 +115,7 @@ where
 {
     /// Constructs a new, empty `IdentifiedVec<ID, Element>` with the specified
     /// `id_of_element` closure
+    #[inline]
     pub fn new_identifying_element(id_of_element: fn(&Element) -> ID) -> Self {
         Self {
             order: Vec::new(),
@@ -153,11 +236,13 @@ where
     /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<ID>`.
     ///
     /// - Complexity: O(1)
+    #[inline]
     pub fn ids(&self) -> &Vec<ID> {
         &self.order
     }
 
     /// Returns the number of elements in the `identified_vec`, also referred to as its 'length'.
+    #[inline]
     pub fn len(&self) -> usize {
         if cfg!(debug_assertions) {
             assert_eq!(self.order.len(), self.elements.len());
@@ -462,6 +547,7 @@ where
     ///
     /// - Parameter offsets: The offsets of all elements to be removed.
     /// - Complexity: O(*n*) where *n* is the length of the `identified_vec`.
+    #[inline]
     pub fn remove_at_offsets<I>(&mut self, offsets: I)
     where
         I: IntoIterator<Item = usize>,
@@ -529,16 +615,19 @@ where
     Element: Debug + Clone,
 {
     /// Next index for element appended
+    #[inline]
     fn end_index(&self) -> usize {
         self.len()
     }
 
     /// Returns the ID of an Element
+    #[inline]
     fn id(&self, of: &Element) -> ID {
         (self._id_of_element)(of)
     }
 
     /// Inserting ID at an index, returning if it did, if not, the index of the existing.
+    #[inline]
     fn _insert_id_at(&mut self, id: ID, index: usize) -> (bool, usize) {
         match self.index_of_id(&id) {
             Some(existing) => (false, existing),
@@ -549,6 +638,7 @@ where
         }
     }
 
+    #[inline]
     fn _update_value(&mut self, element: Element, for_key: ID) -> Option<Element> {
         let value = element;
         let key = for_key;
@@ -564,6 +654,7 @@ where
         return None;
     }
 
+    #[inline]
     fn _update_value_inserting_at(
         &mut self,
         element: Element,
