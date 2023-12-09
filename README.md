@@ -14,25 +14,25 @@ use identified_vec::identified_vec_of::IdentifiedVecOf;
 
 #[derive(Eq, PartialEq, Clone, Debug, Hash)]
 struct User {
-  id: &'static str,
+    id: &'static str,
 }
 
 impl User {
-  fn new(id: &'static str) -> Self {
-    Self { id }
-  }
+    fn new(id: &'static str) -> Self {
+        Self { id }
+    }
 }
 
 impl Identifiable for User {
-  type ID = &'static str;
-  fn id(&self) -> Self::ID {
-    self.id
-  }
+    type ID = &'static str;
+    fn id(&self) -> Self::ID {
+        self.id
+    }
 }
 
 let users = IdentifiedVecOf::<User>::from_iter([
-  User::new("u_42"), 
-  User::new("u_1729")
+    User::new("u_42"), 
+    User::new("u_1729")
 ]);
 
 assert_eq!(users.index_of_id(&"u_1729"), Some(1));
