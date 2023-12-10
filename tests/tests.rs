@@ -4,7 +4,7 @@ use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
-    IdentifiedVecOfSerdeFailure,
+    IdentifiedVecOfSerdeFailure, IsIdentifiableVec,
 };
 
 #[derive(Eq, PartialEq, Clone)]

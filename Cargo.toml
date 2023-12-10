@@ -13,6 +13,7 @@ categories = ["data-structures"]
 [features]
 serde = ["dep:serde"]
 id_prim = []
+is_id_vec_of = []
 
 [dependencies]
 serde = { version = "1.0.193", optional = true }

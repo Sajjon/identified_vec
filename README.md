@@ -17,7 +17,7 @@ You can create an identified vec with any element type that implements the `Iden
 
 ```rust
 extern crate identified_vec;
-use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
+use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
 use std::cell::RefCell;
 
 #[derive(Eq, PartialEq, Clone, Debug)]

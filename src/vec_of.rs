@@ -7,7 +7,7 @@ use std::fmt::Debug;
 use crate::serde_error::IdentifiedVecOfSerdeFailure;
 use crate::{
     identified_vec_of::Identifiable,
-    vec::{ConflictResolutionChoice, IdentifiedVec},
+    vec::{ConflictResolutionChoice, IdentifiedVec, IsIdentifiableVec},
 };
 
 #[cfg(feature = "serde")]

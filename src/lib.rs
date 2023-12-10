@@ -10,7 +10,7 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVec, IdentifiedVec, IdentifiedVecOf, Identifiable};
 //! use std::cell::RefCell;
 //!
 //! #[derive(Eq, PartialEq, Clone, Debug)]
@@ -123,13 +123,14 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVec, IdentifiedVec, IdentifiedVecOf, Identifiable};
 //!
 //! // closure which plucks out an ID from an element.
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
 mod identifiable_trait;
+mod is_id_vec_of;
 mod primitives_identifiable;
 mod serde_error;
 mod vec;
@@ -154,7 +155,11 @@ pub mod identified_vec_of {
 
     #[cfg(feature = "serde")]
     pub use crate::serde_error::*;
+
+    #[cfg(feature = "is_id_vec_of")]
+    pub use crate::is_id_vec_of::*;
 }
 
 pub use crate::identified_vec::*;
 pub use crate::identified_vec_of::*;
+pub use crate::vec::IsIdentifiableVec;
