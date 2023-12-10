@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 
-use anyerror::AnyError;
-
 /// Representation of a choice in a conflict resolution
 /// where two elements with the same ID exists, if `ChooseFirst`,
 /// is specified the first/current/existing value will be used, but
@@ -236,11 +234,11 @@ where
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
-    pub fn new_from_iter_try_uniquing_ids_with<I>(
+    pub fn try_from_iter_select_unique_ids_with<E, I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, AnyError>,
-    ) -> Result<Self, AnyError>
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, E>,
+    ) -> Result<Self, E>
     where
         I: IntoIterator<Item = Element>,
     {
@@ -294,7 +292,7 @@ where
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
-    pub fn new_from_iter_uniquing_ids_with<I>(
+    pub fn from_iter_select_unique_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
         combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
@@ -406,16 +404,16 @@ where
         self.elements.get_mut(id)
     }
 
-    /// A read-only collection view for the elements contained in this array, as a `Vec<Elements>`.
+    /// A read-only collection of references to the elements contained in this array, as a `Vec<&Elements>`.
+    ///
+    /// N.B. that this method is not constant time.
+    ///
+    /// If `Element` implements `Clone` you can use `self.items()` which returns a `Vec<Element>`, of cloned elements.
     ///
     /// - Complexity: O(n)
     #[inline]
     pub fn elements(&self) -> Vec<&Element> {
-        let mut elements_ordered = Vec::<&Element>::new();
-        for id in &self.order {
-            elements_ordered.push(self.elements.get(id).expect("element"));
-        }
-        elements_ordered
+        self.iter().collect()
     }
 
     /// Returns `true` if the `identified_vec` contains the `element.`
@@ -440,6 +438,24 @@ where
     #[inline]
     pub fn get_at_index(&self, index: usize) -> Option<&Element> {
         self.order.get(index).and_then(|id| self.get(id))
+    }
+}
+
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    Element: Clone,
+    ID: Eq + Hash + Clone + Debug,
+{
+    /// A read-only collection of clones of the elements contained in this array, as a `Vec<Elements>`.
+    ///
+    /// N.B. that this method is not constant time.
+    ///
+    /// Use `self.elements()` if you are looking for a collection of references.
+    ///
+    /// - Complexity: O(n)
+    #[inline]
+    pub fn items(&self) -> Vec<Element> {
+        self.iter().map(|e| e.clone()).collect()
     }
 }
 

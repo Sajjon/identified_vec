@@ -3,15 +3,6 @@
 version = 3
 
 [[package]]
-name = "anyerror"
-version = "0.1.12"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bcd04a72664a65fb9adeae7ced0c98efd68a2b7a45adda8319b3bb36538404b8"
-dependencies = [
- "serde",
-]
-
-[[package]]
 name = "cfg-if"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -30,9 +21,8 @@ dependencies = [
 
 [[package]]
 name = "identified_vec"
-version = "0.1.3"
+version = "0.1.4"
 dependencies = [
- "anyerror",
  "identified_vec",
  "maplit",
  "rand",

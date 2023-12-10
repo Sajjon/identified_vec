@@ -1,5 +1,6 @@
-use anyerror::AnyError;
 use std::collections::HashMap;
+
+#[cfg(feature = "serde")]
 use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
@@ -15,6 +16,15 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 ///////////////////////
 /// IdentifiedVecOf ///
 ///////////////////////
+
+/// A type alias for `IdentifiedVec<Element::ID, Element>`, this is the
+/// preferred and most powerful collection type of this crate, requires
+/// that your `Element`s impl the `Identifiable` trait. Using this collection
+/// allows you to skip passing the `id_of_element: fn(&Element) -> ID` closure
+/// which you otherwise need to pass when initializing an `IdentifiedVec`. Using
+/// `IdentifiedVecOf` together with feature "serde" also gives serde
+/// serialization/deserialization as if it were a `Vec<Element>`, given that
+/// `Element` implements serde serialization/deserialization of course.
 pub type IdentifiedVecOf<Element> = IdentifiedVec<<Element as Identifiable>::ID, Element>;
 
 //////////////////////////////////////////////
@@ -73,14 +83,14 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn new_from_iter_try_uniquing_with<I>(
+    pub fn try_from_iter_select_unique_with<E, I>(
         elements: I,
-        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, AnyError>,
-    ) -> Result<Self, AnyError>
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, E>,
+    ) -> Result<Self, E>
     where
         I: IntoIterator<Item = Element>,
     {
-        Self::new_from_iter_try_uniquing_ids_with(elements, |e| e.id(), combine)
+        Self::try_from_iter_select_unique_ids_with(elements, |e| e.id(), combine)
     }
 
     /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
@@ -99,14 +109,14 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn new_from_iter_uniquing_with<I>(
+    pub fn from_iter_select_unique_with<I>(
         elements: I,
         combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
     ) -> Self
     where
         I: IntoIterator<Item = Element>,
     {
-        Self::new_from_iter_uniquing_ids_with(elements, |e| e.id(), combine)
+        Self::from_iter_select_unique_ids_with(elements, |e| e.id(), combine)
     }
 }
 
@@ -136,10 +146,8 @@ where
         deserializer: D,
     ) -> Result<IdentifiedVecOf<Element>, D::Error> {
         let elements = Vec::<Element>::deserialize(deserializer)?;
-        IdentifiedVecOf::<Element>::new_from_iter_try_uniquing_with(elements, |(idx, _, _)| {
-            Err(AnyError::new(
-                &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx),
-            ))
+        IdentifiedVecOf::<Element>::try_from_iter_select_unique_with(elements, |(idx, _, _)| {
+            Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx))
         })
         .map_err(de::Error::custom)
     }

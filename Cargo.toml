@@ -1,6 +1,6 @@
 [package]
 name = "identified_vec"
-version = "0.1.3"
+version = "0.1.4"
 edition = "2021"
 authors = ["Alexander Cyon <alex.cyon@gmail.com>"]
 description = "Like HashSet but retaining INSERTION order and without `Hash` requirement on the Element type."
@@ -15,7 +15,6 @@ serde = ["dep:serde"]
 id_prim = []
 
 [dependencies]
-anyerror = "0.1.12"
 serde = { version = "1.0.193", optional = true }
 thiserror = "1.0.50"
 
