@@ -1,6 +1,9 @@
 # `identified_vec`
 
-[![codecov](https://codecov.io/github/Sajjon/identified_vec/graph/badge.svg?token=Em6TayrP8j)](https://codecov.io/github/Sajjon/identified_vec)
+[![Code Coverage](https://codecov.io/github/Sajjon/identified_vec/graph/badge.svg?token=Em6TayrP8j)](https://codecov.io/github/Sajjon/identified_vec)
+[![Crates.io](https://img.shields.io/crates/v/identified_vec.svg)](https://crates.io/crates/identified_vec)
+[![Documentation](https://docs.rs/identified_vec/badge.svg)](https://docs.rs/identified_vec)
+[![Rust](https://img.shields.io/badge/rust-1.73.0%2B-blue.svg?maxAge=3600)](https://github.com/Sajjon/identified_vec)
 
 A collection of unique identifiable elements which retains **insertion** order, inspired by [Pointfree's Swift Identified Collections](https://github.com/pointfreeco/swift-identified-collections).
 
@@ -9,6 +12,8 @@ Similar to the standard `Vec`, the `IdentifiedVec` maintain their elements in a 
 `IdentifiedVec` is a useful alternative to `Vec` when you need to be able to efficiently access unique elements by a stable identifier. It is also a useful alternative to `BTreeSet`, where the `Ord` trait requirement may be too strict, an a useful alternative to `HashSet` where `Hash` trait requirement may be too strict.
 
 You can create an identified vec with any element type that implements the `Identifiable` trait.
+
+# Example
 
 ```rust
 extern crate identified_vec;
@@ -34,14 +39,22 @@ impl User {
         *self.name.borrow()
     }
 }
+```
 
+## Identifiable
+
+```rust
 impl Identifiable for User {
     type ID = &'static str;
     fn id(&self) -> Self::ID {
         self.id
     }
 }
+```
 
+## `from_iter`
+
+```rust
 let mut users = IdentifiedVecOf::<User>::from_iter([
     User::new("u_42", "Satoshi Nakamoto"),
     User::new("u_1337", "Leia Skywalker"),
@@ -56,7 +69,11 @@ assert_eq!(
     users.get_at_index(1).map(|u| u.name()),
     Some("Leia Skywalker")
 );
+```
 
+## `append` & `elements()`
+
+```rust
 users.append(User::new("u_237", "Alan Turing"));
 assert_eq!(
     users.elements(),
@@ -81,7 +98,11 @@ assert_eq!(
     .iter()
     .collect::<Vec<&User>>()
 );
+```
 
+## `update_or_insert`
+
+```rust
 // Element with same ID replaces existing if an `update_*` method is used:
 // e.g. `update_or_insert`:
 users.update_or_insert(User::new("u_42", "Tom Mervolo Dolder"), 0);
@@ -95,7 +116,11 @@ assert_eq!(
     .iter()
     .collect::<Vec<&User>>()
 );
+```
 
+## `update_or_append`
+
+```rust
 // or `update_or_append`
 users.update_or_append(User::new("u_237", "Marie Curie"));
 assert_eq!(
@@ -108,7 +133,11 @@ assert_eq!(
     .iter()
     .collect::<Vec<&User>>()
 );
+```
 
+## `get_mut`
+
+```rust
 // or mutate with `get_mut(id)`
 *users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
 assert_eq!(
@@ -126,10 +155,6 @@ assert_eq!(
 Or you can provide a closure that describes an element's identity:
 
 ```rust
-use identified_vec::identified_vec::IdentifiedVec;
-use identified_vec::identifiable::Identifiable;
-use identified_vec::identified_vec_of::IdentifiedVecOf;
-
 let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 ```
 
