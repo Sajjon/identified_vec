@@ -30,7 +30,7 @@ dependencies = [
 
 [[package]]
 name = "identified_vec"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
  "anyerror",
  "identified_vec",
