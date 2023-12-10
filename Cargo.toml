@@ -15,7 +15,6 @@ serde = ["dep:serde"]
 id_prim = []
 
 [dependencies]
-anyerror = "0.1.12"
 serde = { version = "1.0.193", optional = true }
 thiserror = "1.0.50"
 

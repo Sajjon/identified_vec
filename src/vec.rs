@@ -2,8 +2,6 @@ use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 
-use anyerror::AnyError;
-
 /// Representation of a choice in a conflict resolution
 /// where two elements with the same ID exists, if `ChooseFirst`,
 /// is specified the first/current/existing value will be used, but
@@ -236,11 +234,11 @@ where
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
-    pub fn new_from_iter_try_uniquing_ids_with<I>(
+    pub fn try_from_iter_select_unique_ids_with<E, I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
-        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, AnyError>,
-    ) -> Result<Self, AnyError>
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, E>,
+    ) -> Result<Self, E>
     where
         I: IntoIterator<Item = Element>,
     {
@@ -294,7 +292,7 @@ where
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
-    pub fn new_from_iter_uniquing_ids_with<I>(
+    pub fn from_iter_select_unique_ids_with<I>(
         elements: I,
         id_of_element: fn(&Element) -> ID,
         combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,

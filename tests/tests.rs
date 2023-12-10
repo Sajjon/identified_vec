@@ -2,7 +2,6 @@
 
 use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
-use anyerror::AnyError;
 use identified_vec::{
     ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
     IdentifiedVecOfSerdeFailure,
@@ -217,7 +216,7 @@ fn constructor_id_uniquing_elements() {
         }
     }
 
-    let conservative = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
+    let conservative = IdentifiedVec::<i32, Model>::from_iter_select_unique_ids_with(
         [
             Model::new(1, "A"),
             Model::new(2, "B"),
@@ -232,7 +231,7 @@ fn constructor_id_uniquing_elements() {
         [&Model::new(1, "A"), &Model::new(2, "B")]
     );
 
-    let progressive = IdentifiedVec::<i32, Model>::new_from_iter_uniquing_ids_with(
+    let progressive = IdentifiedVec::<i32, Model>::from_iter_select_unique_ids_with(
         [
             Model::new(1, "A"),
             Model::new(2, "B"),
@@ -249,7 +248,7 @@ fn constructor_id_uniquing_elements() {
 }
 
 #[test]
-fn constructor_uniquing_elements() {
+fn constructor_from_iter_select_unique_with() {
     #[derive(Eq, PartialEq, Clone, Hash, Debug)]
     struct Model {
         id: i32,
@@ -268,7 +267,7 @@ fn constructor_uniquing_elements() {
         }
     }
 
-    let conservative = IdentifiedVecOf::<Model>::new_from_iter_uniquing_with(
+    let conservative = IdentifiedVecOf::<Model>::from_iter_select_unique_with(
         [
             Model::new(1, "A"),
             Model::new(2, "B"),
@@ -282,7 +281,7 @@ fn constructor_uniquing_elements() {
         [&Model::new(1, "A"), &Model::new(2, "B")]
     );
 
-    let progressive = IdentifiedVecOf::<Model>::new_from_iter_uniquing_with(
+    let progressive = IdentifiedVecOf::<Model>::from_iter_select_unique_with(
         [
             Model::new(1, "A"),
             Model::new(2, "B"),
@@ -413,7 +412,7 @@ fn serde() {
         serde_json::from_str::<SUT>("[1,1,1]")
             .expect_err("should fail")
             .to_string(),
-        "identified_vec::serde_error::IdentifiedVecOfSerdeFailure: Duplicate element at offset 1"
+        "Duplicate element at offset 1"
     );
 
     assert!(serde_json::from_str::<SUT>("invalid").is_err(),);
@@ -457,40 +456,34 @@ fn eq() {
     let mut vecs: Vec<IdentifiedVecOf<Foo>> = vec![
         IdentifiedVecOf::new(),
         IdentifiedVecOf::new_identifying_element(|e| e.id()),
-        IdentifiedVecOf::new_from_iter_uniquing_with([], |_| ConflictResolutionChoice::ChooseLast),
-        IdentifiedVecOf::new_from_iter_uniquing_ids_with(
+        IdentifiedVecOf::from_iter_select_unique_with([], |_| ConflictResolutionChoice::ChooseLast),
+        IdentifiedVecOf::from_iter_select_unique_ids_with(
             [],
             |e| e.id(),
             |_| ConflictResolutionChoice::ChooseLast,
         ),
-        IdentifiedVecOf::new_from_iter_try_uniquing_ids_with(
+        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
             [],
             |e: &Foo| e.id(),
-            |_| Ok(ConflictResolutionChoice::ChooseLast),
+            |_| Result::<_, ()>::Ok(ConflictResolutionChoice::ChooseLast),
         )
         .unwrap(),
     ];
 
     assert_eq!(
-        IdentifiedVecOf::new_from_iter_try_uniquing_ids_with(
+        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
             [Foo::new(), Foo::new()],
             |e: &Foo| e.id(),
-            |_| Err(AnyError::new(
-                &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
-            )),
+            |_| Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)),
         ),
-        Err(AnyError::new(
-            &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
-        ))
+        Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
     );
 
     assert_eq!(
-        IdentifiedVecOf::new_from_iter_try_uniquing_with([Foo::new(), Foo::new()], |_| Err(
-            AnyError::new(&IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
+        IdentifiedVecOf::tryfrom_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
+            IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
         ),),
-        Err(AnyError::new(
-            &IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
-        ))
+        Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
     );
 
     vecs.iter().for_each(|l| {
