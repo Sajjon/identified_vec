@@ -17,9 +17,7 @@ You can create an identified vec with any element type that implements the `Iden
 
 ```rust
 extern crate identified_vec;
-use identified_vec::identified_vec::IdentifiedVec;
-use identified_vec::identifiable::Identifiable;
-use identified_vec::identified_vec_of::IdentifiedVecOf;
+use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
 use std::cell::RefCell;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -162,16 +160,17 @@ let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 
 None of the std collections `BTreeSet` and `HashSet` retain insertion order, `Vec` retains insertion order, however, it allows for duplicates. So if you want a collection of unique elements (Set-like) that does retain insertion order, `IdentifiedVec` suits your needs. Even better, the elements does not need to be to impl `Hash` nor ` Ord`.
 
-# Features
+## Flags
 
-## Serde
+This crate has the following Cargo features:
 
-The `IdentifiedVecOf` type (which `Element` impl `Identifiable` trait) is `serde::Serializable` and `serde::Deserializable` as `Vec`.
-
-```toml
-identified_vec = { version = "0.1.2", features = ["serde"] }
-```
+- `serde`: Enables serde serialization support on `IdentifiedVecOf` type (which `Element` impl `Identifiable` trait).
+- `id_prim`: Get impl of trait `Identifiable` for primitives: `i8`,.., `i128`, `u8`, ..., `u128` and `bool` (not so useful, allows for only two elements in `IdentifiedVecOf`, but who am I to discriminate.)
 
 ## Implementation Details
 
-An identified vec consists of a `Vec` of `ID`s keeping insertion order and a `HashMap` of id-element pairs, for contsant time lookip of element given an ID.
+An identified vec consists of a `Vec` of `ID`s keeping insertion order and a `HashMap` of id-element pairs, for constant time lookup of element given an ID.
+
+## License
+
+Licensed under MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)

@@ -33,9 +33,7 @@ pub enum ConflictResolutionChoice {
 ///
 /// ```
 /// extern crate identified_vec;
-/// use identified_vec::identified_vec::IdentifiedVec;
-/// use identified_vec::identifiable::Identifiable;
-/// use identified_vec::identified_vec_of::IdentifiedVecOf;
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
 /// use std::cell::RefCell;
 ///
 /// #[derive(Eq, PartialEq, Clone, Debug)]
@@ -146,9 +144,7 @@ pub enum ConflictResolutionChoice {
 ///
 /// ```
 /// /// extern crate identified_vec;
-/// use identified_vec::identified_vec::IdentifiedVec;
-/// use identified_vec::identifiable::Identifiable;
-/// use identified_vec::identified_vec_of::IdentifiedVecOf;
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
 ///
 /// let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 /// ```
@@ -363,9 +359,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::identified_vec::IdentifiedVec;
-    /// use identified_vec::identifiable::Identifiable;
-    /// use identified_vec::identified_vec_of::IdentifiedVecOf;
+    /// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
@@ -647,9 +641,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::identified_vec::IdentifiedVec;
-    /// use identified_vec::identifiable::Identifiable;
-    /// use identified_vec::identified_vec_of::IdentifiedVecOf;
+    /// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {

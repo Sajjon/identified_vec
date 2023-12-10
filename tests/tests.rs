@@ -10,11 +10,12 @@ use identified_vec::{
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct User {
-    pub id: i32,
+    pub id: u16,
     pub name: RefCell<String>,
 }
+
 impl User {
-    fn new(id: i32, name: &str) -> Self {
+    fn new(id: u16, name: &str) -> Self {
         if name.is_empty() {
             panic!("name cannot be empty")
         }
@@ -34,6 +35,7 @@ impl User {
         User::new(3, "Blob, Sr.")
     }
 }
+
 impl Debug for User {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("User")
@@ -42,14 +44,15 @@ impl Debug for User {
             .finish()
     }
 }
+
 impl Identifiable for User {
-    type ID = i32;
+    type ID = u16;
     fn id(&self) -> Self::ID {
         self.id
     }
 }
 
-type SUT = IdentifiedVecOf<i32>;
+type SUT = IdentifiedVecOf<u32>;
 type Users = IdentifiedVecOf<User>;
 
 #[test]
@@ -108,7 +111,7 @@ fn get() {
     assert_eq!(identified_vec.get(&3), Some(&User::blob_sr()));
 
     // 1
-    let mut id: &i32 = &1;
+    let mut id: &u16 = &1;
     identified_vec
         .get_mut(id)
         .unwrap()
@@ -530,7 +533,7 @@ fn display() {
 fn hash() {
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
-        HashSet::<IdentifiedVec<i32, i32>>::from_iter([identified_vec.clone()]),
+        HashSet::<IdentifiedVec<u32, u32>>::from_iter([identified_vec.clone()]),
         HashSet::from_iter([identified_vec.clone(), identified_vec])
     )
 }

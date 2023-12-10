@@ -1,14 +1,13 @@
-use crate::{
-    identifiable::Identifiable,
-    identified_vec::{ConflictResolutionChoice, IdentifiedVec},
-};
-
 use anyerror::AnyError;
 use std::collections::HashMap;
 use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
 use crate::serde_error::IdentifiedVecOfSerdeFailure;
+use crate::{
+    identified_vec_of::Identifiable,
+    vec::{ConflictResolutionChoice, IdentifiedVec},
+};
 
 #[cfg(feature = "serde")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
