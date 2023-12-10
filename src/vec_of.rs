@@ -83,7 +83,7 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn tryfrom_iter_select_unique_with<E, I>(
+    pub fn try_from_iter_select_unique_with<E, I>(
         elements: I,
         combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, E>,
     ) -> Result<Self, E>
@@ -146,7 +146,7 @@ where
         deserializer: D,
     ) -> Result<IdentifiedVecOf<Element>, D::Error> {
         let elements = Vec::<Element>::deserialize(deserializer)?;
-        IdentifiedVecOf::<Element>::tryfrom_iter_select_unique_with(elements, |(idx, _, _)| {
+        IdentifiedVecOf::<Element>::try_from_iter_select_unique_with(elements, |(idx, _, _)| {
             Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx))
         })
         .map_err(de::Error::custom)

@@ -193,18 +193,18 @@ fn index_id() {
 fn remove_element() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.remove(&2), Some(2));
-    assert_eq!(identified_vec.elements(), [&1, &3]);
+    assert_eq!(identified_vec.items(), [1, 3]);
 }
 
 #[test]
 fn remove_by_id() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.remove_by_id(&2), Some(2));
-    assert_eq!(identified_vec.elements(), [&1, &3]);
+    assert_eq!(identified_vec.items(), [1, 3]);
 }
 
 #[test]
-fn constructor_id_uniquing_elements() {
+fn constructor_from_iter_select_unique_ids_with() {
     #[derive(Eq, PartialEq, Clone, Hash, Debug)]
     struct Model {
         id: i32,
@@ -227,8 +227,8 @@ fn constructor_id_uniquing_elements() {
     );
 
     assert_eq!(
-        conservative.elements(),
-        [&Model::new(1, "A"), &Model::new(2, "B")]
+        conservative.items(),
+        [Model::new(1, "A"), Model::new(2, "B")]
     );
 
     let progressive = IdentifiedVec::<i32, Model>::from_iter_select_unique_ids_with(
@@ -242,8 +242,8 @@ fn constructor_id_uniquing_elements() {
     );
 
     assert_eq!(
-        progressive.elements(),
-        [&Model::new(1, "AAAA"), &Model::new(2, "B")]
+        progressive.items(),
+        [Model::new(1, "AAAA"), Model::new(2, "B")]
     )
 }
 
@@ -277,8 +277,13 @@ fn constructor_from_iter_select_unique_with() {
     );
 
     assert_eq!(
-        conservative.elements(),
-        [&Model::new(1, "A"), &Model::new(2, "B")]
+        conservative.items(),
+        [Model::new(1, "A"), Model::new(2, "B")]
+    );
+
+    assert_eq!(
+        conservative.items(),
+        [Model::new(1, "A"), Model::new(2, "B")]
     );
 
     let progressive = IdentifiedVecOf::<Model>::from_iter_select_unique_with(
@@ -291,8 +296,8 @@ fn constructor_from_iter_select_unique_with() {
     );
 
     assert_eq!(
-        progressive.elements(),
-        [&Model::new(1, "AAAA"), &Model::new(2, "B")]
+        progressive.items(),
+        [Model::new(1, "AAAA"), Model::new(2, "B")]
     )
 }
 
@@ -302,18 +307,18 @@ fn append() {
     let (mut inserted, mut index) = identified_vec.append(4);
     assert!(inserted);
     assert_eq!(index, 3);
-    assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
     (inserted, index) = identified_vec.append(2);
     assert_eq!(inserted, false);
     assert_eq!(index, 1);
-    assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
 }
 
 #[test]
 fn append_other() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     identified_vec.append_other([1, 4, 3, 5]);
-    assert_eq!(identified_vec.elements(), [&1, &2, &3, &4, &5])
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4, 5])
 }
 
 #[test]
@@ -322,11 +327,11 @@ fn insert() {
     let (mut inserted, mut index) = identified_vec.insert(0, 0);
     assert!(inserted);
     assert_eq!(index, 0);
-    assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
+    assert_eq!(identified_vec.items(), [0, 1, 2, 3]);
     (inserted, index) = identified_vec.insert(2, 0);
     assert_eq!(inserted, false);
     assert_eq!(index, 2);
-    assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
+    assert_eq!(identified_vec.items(), [0, 1, 2, 3]);
 }
 
 #[test]
@@ -363,7 +368,7 @@ fn update_at_expect_panic_other_id() {
 fn update_or_append() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.update_or_append(4), None);
-    assert_eq!(identified_vec.elements(), [&1, &2, &3, &4]);
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
     assert_eq!(identified_vec.update_or_append(2), Some(2));
 }
 
@@ -373,18 +378,18 @@ fn update_or_insert() {
     let (mut original_member, mut index) = identified_vec.update_or_insert(0, 0);
     assert_eq!(original_member, None);
     assert_eq!(index, 0);
-    assert_eq!(identified_vec.elements(), [&0, &1, &2, &3]);
+    assert_eq!(identified_vec.items(), [0, 1, 2, 3]);
     (original_member, index) = identified_vec.update_or_insert(2, 0);
     assert_eq!(original_member, Some(2));
     assert_eq!(index, 2);
-    assert_eq!(identified_vec.elements(), [&0, &1, &2, &3])
+    assert_eq!(identified_vec.items(), [0, 1, 2, 3])
 }
 
 #[test]
 fn remove_at_offsets() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     identified_vec.remove_at_offsets([0, 2]);
-    assert_eq!(identified_vec.elements(), [&2])
+    assert_eq!(identified_vec.items(), [2])
 }
 
 #[test]
@@ -480,7 +485,7 @@ fn eq() {
     );
 
     assert_eq!(
-        IdentifiedVecOf::tryfrom_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
+        IdentifiedVecOf::try_from_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
             IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
         ),),
         Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
