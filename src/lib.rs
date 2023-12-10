@@ -124,6 +124,8 @@
 //! ```
 //! extern crate identified_vec;
 //! use identified_vec::{IdentifiedVec, IdentifiedVecOf, Identifiable};
+//!
+//! // closure which plucks out an ID from an element.
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 

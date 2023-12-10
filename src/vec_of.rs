@@ -1,5 +1,7 @@
 use anyerror::AnyError;
 use std::collections::HashMap;
+
+#[cfg(feature = "serde")]
 use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
@@ -15,6 +17,15 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 ///////////////////////
 /// IdentifiedVecOf ///
 ///////////////////////
+
+/// A type alias for `IdentifiedVec<Element::ID, Element>`, this is the
+/// preferred and most powerful collection type of this crate, requires
+/// that your `Element`s impl the `Identifiable` trait. Using this collection
+/// allows you to skip passing the `id_of_element: fn(&Element) -> ID` closure
+/// which you otherwise need to pass when initializing an `IdentifiedVec`. Using
+/// `IdentifiedVecOf` together with feature "serde" also gives serde
+/// serialization/deserialization as if it were a `Vec<Element>`, given that
+/// `Element` implements serde serialization/deserialization of course.
 pub type IdentifiedVecOf<Element> = IdentifiedVec<<Element as Identifiable>::ID, Element>;
 
 //////////////////////////////////////////////
