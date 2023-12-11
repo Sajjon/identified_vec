@@ -1,3 +1,4 @@
+use crate::InsertionFailure;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
@@ -568,6 +569,28 @@ where
         other.into_iter().for_each(|i| _ = self.append(i))
     }
 
+    /// Try Append a new member to the end of the `identified_vec`, if the `identified_vec` already contains the element a InsertionError will be returned.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`. If the given ID or Value pre-exists within the collection the function call returns a InsertionFailure Error specifying the reason.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn try_append(&mut self, element: Element) -> Result<(bool, usize), InsertionFailure> {
+        let id = self.id(&element);
+        if self.index_of_id(&id).is_some() {
+            return Err(InsertionFailure::ElementWithSameIDFound);
+        }
+
+        if self.contains(&element) {
+            return Err(InsertionFailure::ElementWithSameValueFound);
+        }
+
+        Ok(self.insert(element, self.end_index()))
+    }
+
     /// Adds the given element to the `identified_vec` unconditionally, either appending it to the `identified_vec``, or
     /// replacing an existing value if it's already present.
     ///
@@ -604,6 +627,27 @@ where
             ._update_value_inserting_at(element, id, index)
             .0
             .expect("Replaced old value");
+    }
+
+    /// Try to add the given element to the `identified_vec` unconditionally, either appending it to the `identified_vec``, or
+    /// replacing an existing value if it's already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Returns: A Result with either the original element that was replaced by this operation, or `None` if the value was
+    ///   appended to the end of the collection. If the given element already exists within the collection the function call returns a InsertionFailure.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn try_update_or_append(
+        &mut self,
+        element: Element,
+    ) -> Result<Option<Element>, InsertionFailure> {
+        let id = self.id(&element);
+        if self.index_of_id(&id).is_some() && self.contains(&element) {
+            return Err(InsertionFailure::ElementWithSameValueFound);
+        }
+
+        Ok(self._update_value(element, id))
     }
 
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
