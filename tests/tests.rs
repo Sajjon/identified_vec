@@ -330,9 +330,9 @@ fn try_append_unique_element() {
 }
 
 #[test]
-fn try_append() {
+fn try_append_new_unique_element() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
-    let result = identified_vec.try_append(4);
+    let result = identified_vec.try_append_new(4);
     assert!(result.is_ok());
     assert_eq!(result.unwrap().1, 3);
     assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
@@ -341,19 +341,7 @@ fn try_append() {
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
-    let result = identified_vec.try_append(User::new(2, "Blob Jr Jr"));
-    assert!(result.is_err());
-    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
-    assert_eq!(
-        identified_vec.items(),
-        [User::blob(), User::blob_jr(), User::blob_sr()]
-    );
-
-    let mut identified_vec: Users = IdentifiedVecOf::new();
-    identified_vec.append(User::blob());
-    identified_vec.append(User::blob_jr());
-    identified_vec.append(User::blob_sr());
-    let result = identified_vec.try_append(User::new(4, "Blob Jr Jr"));
+    let result = identified_vec.try_append_new(User::new(4, "Blob Jr Jr"));
     assert!(result.is_ok());
     assert_eq!(result, Ok((true, 3)));
     assert_eq!(
@@ -364,6 +352,21 @@ fn try_append() {
             User::blob_sr(),
             User::new(4, "Blob Jr Jr")
         ]
+    );
+}
+
+#[test]
+fn try_append_element_with_existing_id() {
+    let mut identified_vec: Users = IdentifiedVecOf::new();
+    identified_vec.append(User::blob());
+    identified_vec.append(User::blob_jr());
+    identified_vec.append(User::blob_sr());
+    let result = identified_vec.try_append_new(User::new(2, "Blob Jr Jr"));
+    assert!(result.is_err());
+    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
+    assert_eq!(
+        identified_vec.items(),
+        [User::blob(), User::blob_jr(), User::blob_sr()]
     );
 }
 

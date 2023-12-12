@@ -577,7 +577,7 @@ where
     /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
     ///   the `ID` type, if it implements high-quality hashing.
     #[inline]
-    pub fn try_append(&mut self, element: Element) -> Result<(bool, usize), Error> {
+    pub fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error> {
         let id = self.id(&element);
 
         if self.contains_id(&id) {
@@ -660,8 +660,7 @@ where
             .expect("Replaced old value");
     }
 
-    /// Try to add the given element to the `identified_vec` unconditionally, either appending it to the `identified_vec``, or
-    /// replacing an existing value if it's already present.
+    /// Try to update the given element to the `identified_vec` if a element with the same ID is already present.
     ///
     /// - Parameter item: The value to append or replace.
     /// - Returns: A Result with either the original element that was replaced by this operation, or a Error, `Error::ExpectedElementNotPresent`, specifying that the expected element is not present within the collection.
