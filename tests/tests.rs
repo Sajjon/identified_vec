@@ -325,7 +325,7 @@ fn try_append_unique_element() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     let result = identified_vec.try_append_unique_element(2);
     assert!(result.is_err());
-    assert_eq!(result, Err(Error::ElementWithSameValueFound));
+    assert_eq!(result, Err(Error::ElementWithSameValueFound(format!("2"))));
     assert_eq!(identified_vec.items(), [1, 2, 3]);
 }
 
@@ -343,7 +343,7 @@ fn try_append() {
     identified_vec.append(User::blob_sr());
     let result = identified_vec.try_append(User::new(2, "Blob Jr Jr"));
     assert!(result.is_err());
-    assert_eq!(result, Err(Error::ElementWithSameIDFound));
+    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
     assert_eq!(
         identified_vec.items(),
         [User::blob(), User::blob_jr(), User::blob_sr()]
@@ -430,7 +430,7 @@ fn try_update() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
         identified_vec.try_update(4),
-        Err(Error::ExpectedElementNotPresent)
+        Err(Error::ExpectedElementNotPresent(format!("4")))
     );
     assert_eq!(identified_vec.items(), [1, 2, 3]);
 

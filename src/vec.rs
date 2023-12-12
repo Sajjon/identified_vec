@@ -554,9 +554,9 @@ where
 
         if let Some(value) = self.get(&id) {
             if value == &element {
-                return Err(Error::ElementWithSameValueFound);
+                return Err(Error::ElementWithSameValueFound(format!("{:#?}", value)));
             } else {
-                return Err(Error::ElementWithSameIDFound);
+                return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
             }
         }
 
@@ -581,7 +581,7 @@ where
         let id = self.id(&element);
 
         if self.contains_id(&id) {
-            return Err(Error::ElementWithSameIDFound);
+            return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
         }
 
         Ok(self.append(element))
@@ -671,7 +671,7 @@ where
     pub fn try_update(&mut self, element: Element) -> Result<Element, Error> {
         let id = self.id(&element);
         if self.get(&id).is_none() {
-            return Err(Error::ExpectedElementNotPresent);
+            return Err(Error::ExpectedElementNotPresent(format!("{:#?}", id)));
         }
 
         Ok(self

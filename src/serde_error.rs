@@ -7,10 +7,10 @@ pub enum IdentifiedVecOfSerdeFailure {
 
 #[derive(thiserror::Error, Debug, Clone, PartialEq, Eq)]
 pub enum Error {
-    #[error("Element with that id not found in collection")]
-    ExpectedElementNotPresent,
-    #[error("Duplicate element with same value found")]
-    ElementWithSameValueFound,
-    #[error("Duplicate element with same ID found")]
-    ElementWithSameIDFound,
+    #[error("Element with that id: `{0}` not found in collection")]
+    ExpectedElementNotPresent(String),
+    #[error("Duplicate element with same value: `{0}` found")]
+    ElementWithSameValueFound(String),
+    #[error("Duplicate element with same ID: `{0}` found")]
+    ElementWithSameIDFound(String),
 }
