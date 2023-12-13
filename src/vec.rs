@@ -1,3 +1,4 @@
+use crate::serde_error::Error;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
@@ -534,6 +535,59 @@ where
     }
 }
 
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+    Element: Eq + Debug,
+{
+    /// Try append a new unique member to the end of the `identified_vec`, if the `identified_vec` already contains the Value or ID a Error will be returned.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`. If the given ID already exist `Error::ElementWithSameIDFound` willl be returned and if the value pre-exists within the collection the function call returns `Error::ElementWithSameValueFound`.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn try_append_unique_element(&mut self, element: Element) -> Result<(bool, usize), Error> {
+        let id = self.id(&element);
+
+        if let Some(value) = self.get(&id) {
+            if value == &element {
+                return Err(Error::ElementWithSameValueFound(format!("{:?}", value)));
+            } else {
+                return Err(Error::ElementWithSameIDFound(format!("{:?}", id)));
+            }
+        }
+
+        Ok(self.append(element))
+    }
+}
+
+impl<ID, Element> IdentifiedVec<ID, Element>
+where
+    ID: Eq + Hash + Clone + Debug,
+{
+    /// Try append a new member to the end of the `identified_vec`, if the `identified_vec` already contains the element a Error will be returned.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`. If the given ID pre-exists within the collection the function call returns `Error::ElementWithSameIDFound`.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error> {
+        let id = self.id(&element);
+
+        if self.contains_id(&id) {
+            return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
+        }
+
+        Ok(self.append(element))
+    }
+}
+
 ///////////////////////
 ////  Public Insert ///
 ///////////////////////
@@ -604,6 +658,24 @@ where
             ._update_value_inserting_at(element, id, index)
             .0
             .expect("Replaced old value");
+    }
+
+    /// Try to update the given element to the `identified_vec` if a element with the same ID is already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Returns: A Result with either the original element that was replaced by this operation, or a Error, `Error::ExpectedElementNotPresent`, specifying that the expected element is not present within the collection.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    pub fn try_update(&mut self, element: Element) -> Result<Element, Error> {
+        let id = self.id(&element);
+        if self.get(&id).is_none() {
+            return Err(Error::ExpectedElementNotPresent(format!("{:#?}", id)));
+        }
+
+        Ok(self
+            ._update_value(element, id)
+            .expect("Failed to update value"))
     }
 
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
