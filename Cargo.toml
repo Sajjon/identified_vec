@@ -2,4 +2,4 @@
 
 resolver = "2"
 
-members = ["identified_vec", "identified_vec_macros"]
+members = ["identified_vec", "identified_vec_macros", "tests"]

@@ -1,11 +1,11 @@
-#![cfg(feature = "id_prim")]
-
 use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
     IdentifiedVecOfSerdeFailure, IsIdentifiableVec,
 };
+
+use identified_vec_macros::show_streams;
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct User {
@@ -534,4 +534,15 @@ fn hash() {
         HashSet::<IdentifiedVec<u32, u32>>::from_iter([identified_vec.clone()]),
         HashSet::from_iter([identified_vec.clone(), identified_vec])
     )
+}
+
+// Test macro
+
+#[test]
+fn test_macro() {
+    // Example: Attribute with input
+    #[show_streams(biz)]
+    fn invoke2() {}
+    // printed: attributes: "biz"
+    // printed: item= "fn invoke2() {}"
 }
