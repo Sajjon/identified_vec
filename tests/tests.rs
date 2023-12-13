@@ -327,6 +327,16 @@ fn try_append_unique_element() {
     assert!(result.is_err());
     assert_eq!(result, Err(Error::ElementWithSameValueFound(format!("2"))));
     assert_eq!(identified_vec.items(), [1, 2, 3]);
+
+    let mut identified_vec =
+        IdentifiedVecOf::from_iter([User::blob(), User::blob_jr(), User::blob_sr()]);
+    let result = identified_vec.try_append_unique_element(User::new(2, "Blob blob Jr"));
+    assert!(result.is_err());
+    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
+    assert_eq!(
+        identified_vec.items(),
+        [User::blob(), User::blob_jr(), User::blob_sr()]
+    );
 }
 
 #[test]
