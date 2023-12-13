@@ -538,7 +538,7 @@ where
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,
-    Element: Eq + Hash + Clone + Debug,
+    Element: Eq + Debug,
 {
     /// Try append a new unique member to the end of the `identified_vec`, if the `identified_vec` already contains the Value or ID a Error will be returned.
     ///
@@ -554,9 +554,9 @@ where
 
         if let Some(value) = self.get(&id) {
             if value == &element {
-                return Err(Error::ElementWithSameValueFound(format!("{:#?}", value)));
+                return Err(Error::ElementWithSameValueFound(format!("{:?}", value)));
             } else {
-                return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
+                return Err(Error::ElementWithSameIDFound(format!("{:?}", id)));
             }
         }
 
