@@ -1,10 +1,14 @@
-// use proc_macro2::TokenStream;
-extern crate proc_macro;
-use proc_macro::TokenStream;
+#[macro_export]
+macro_rules! new_identified_vec {
+    (of: $item_ty: ty, named: $struct_name: ident) => {
+        pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 
-#[proc_macro_attribute]
-pub fn show_streams(attr: TokenStream, item: TokenStream) -> TokenStream {
-    println!("attributes: \"{}\"", attr.to_string());
-    println!("item= \"{}\"", item.to_string());
-    item
+        impl $struct_name {
+            /// Constructs a new, empty `IdentifiedVec<ID, Element>`, using `id()` on `Element`
+            /// as id function.
+            pub fn new() -> Self {
+                Self(IdentifiedVecOf::new())
+            }
+        }
+    };
 }

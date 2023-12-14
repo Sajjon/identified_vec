@@ -8,7 +8,7 @@ authors = ["Alexander Cyon <alex.cyon@gmail.com>"]
 identified_vec = { path = "../identified_vec" }
 proc-macro2 = "1.0.70"
 quote = "1.0"
-syn = { version = "2.0", features = ["extra-traits", "full"] }
+syn = { version = "2.0", features = ["extra-traits", "full", "parsing"] }
 
-[lib]
-proc-macro = true
+# [lib]
+# proc-macro = true
