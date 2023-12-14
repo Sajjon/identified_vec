@@ -1,5 +1,5 @@
 #[macro_export]
-macro_rules! new_identified_vec {
+macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
         pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 

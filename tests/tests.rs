@@ -5,7 +5,7 @@ use identified_vec::{
     IdentifiedVecOfSerdeFailure, IsIdentifiableVec,
 };
 
-use identified_vec_macros::new_identified_vec;
+use identified_vec_macros::newtype_identified_vec;
 
 #[derive(Eq, PartialEq, Clone)]
 pub struct User {
@@ -540,7 +540,7 @@ fn hash() {
 
 #[test]
 fn test_macro() {
-    new_identified_vec!(of: User, named: CollectionOfUsers);
+    newtype_identified_vec!(of: User, named: CollectionOfUsers);
     let mut users = CollectionOfUsers::new();
     users.0.append(User::blob());
     assert_eq!(users.0.items(), [User::blob()])
