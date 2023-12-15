@@ -55,7 +55,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
@@ -174,7 +174,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {

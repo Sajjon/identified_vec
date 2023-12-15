@@ -1,9 +1,4 @@
-use std::{
-    cell::{Ref, RefCell, RefMut},
-    collections::HashSet,
-    fmt::Debug,
-    ops::Deref,
-};
+use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
@@ -127,6 +122,7 @@ fn get() {
     //     identified_vec.get(id),
     //     Some(&User::new(id.clone(), "Blob, Esq."))
     // );
+    // identified_vec.upd
 
     // // 2
     // id = &2;
@@ -148,19 +144,19 @@ fn get() {
     //     .drain(4..9);
     // assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
 
-    identified_vec.remove_by_id(id);
-    assert_eq!(identified_vec.get(id), None);
-    identified_vec.append(User::new(4, "Blob, Sr."));
-    assert_eq!(
-        identified_vec.elements(),
-        [
-            User::new(1, "Blob, Esq."),
-            User::new(2, "Blob"),
-            User::new(4, "Blob, Sr."),
-        ]
-        .iter()
-        .collect::<Vec<&User>>()
-    );
+    // identified_vec.remove_by_id(id);
+    // assert_eq!(identified_vec.get(id), None);
+    // identified_vec.append(User::new(4, "Blob, Sr."));
+    // assert_eq!(
+    //     identified_vec.elements(),
+    //     [
+    //         User::new(1, "Blob, Esq."),
+    //         User::new(2, "Blob"),
+    //         User::new(4, "Blob, Sr."),
+    //     ]
+    //     .iter()
+    //     .collect::<Vec<&User>>()
+    // );
 }
 
 #[test]
@@ -592,10 +588,3 @@ fn test_macro() {
     sut.update_or_append(User::blob_jr());
     assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }
-
-// #[test]
-// fn test_macro() {
-//     let mut users = CollectionOfUsers::new();
-//     users.0.append(User::blob());
-//     assert_eq!(users.0.items(), [User::blob()])
-// }

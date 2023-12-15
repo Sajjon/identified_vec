@@ -10,7 +10,7 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IsIdentifiableVec, IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable};
 //! use std::cell::RefCell;
 //!
 //! #[derive(Eq, PartialEq, Clone, Debug)]

@@ -23,7 +23,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// ```
 /// extern crate identified_vec;
-/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec};
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
 /// use std::cell::RefCell;
 ///
 /// #[derive(Eq, PartialEq, Clone, Debug)]
@@ -121,7 +121,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// ```
 /// /// extern crate identified_vec;
-/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec};
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
 ///
 /// let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 /// ```
@@ -325,7 +325,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
@@ -512,7 +512,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
