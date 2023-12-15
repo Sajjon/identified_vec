@@ -1,7 +1,5 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
 use crate::{Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
-use std::fmt::Debug;
-use std::hash::Hash;
 
 /// https://stackoverflow.com/a/66537661/1311272
 pub trait ViaMarker {}

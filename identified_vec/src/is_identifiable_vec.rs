@@ -70,7 +70,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> ID {
+    ///     fn id(&self) -> Self::ID {
     ///         self.id
     ///     }
     /// }
@@ -197,7 +197,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> ID {
+    ///     fn id(&self) -> Self::ID {
     ///         self.id
     ///     }
     /// }

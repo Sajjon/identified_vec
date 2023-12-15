@@ -46,7 +46,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// impl Identifiable for User {
 ///     type ID = &'static str;
-///     fn id(&self) -> I {
+///     fn id(&self) -> Self::ID {
 ///         self.id
 ///     }
 /// }
@@ -353,7 +353,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> I {
+    ///     fn id(&self) -> Self::ID {
     ///         self.id
     ///     }
     /// }
@@ -551,7 +551,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> I {
+    ///     fn id(&self) -> Self::ID {
     ///         self.id
     ///     }
     /// }
