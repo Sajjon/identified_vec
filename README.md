@@ -133,23 +133,6 @@ assert_eq!(
 );
 ```
 
-## `get_mut`
-
-```rust
-// or mutate with `get_mut(id)`
-*users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
-assert_eq!(
-    users.elements(),
-    [
-        User::new("u_42", "Tom Mervolo Dolder"),
-        User::new("u_1337", "Yoda"),
-        User::new("u_237", "Marie Curie"),
-    ]
-    .iter()
-    .collect::<Vec<&User>>()
-);
-```
-
 Or you can provide a closure that describes an element's identity:
 
 ```rust

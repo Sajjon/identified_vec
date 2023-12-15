@@ -5,6 +5,7 @@ use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
 use crate::serde_error::IdentifiedVecOfSerdeFailure;
+use crate::IsIdentifiableVecOf;
 use crate::{
     conflict_resolution_choice::ConflictResolutionChoice, is_identifiable_vec::IsIdentifiableVec,
 };
@@ -27,16 +28,13 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 /// `Element` implements serde serialization/deserialization of course.
 pub type IdentifiedVecOf<Element> = IdentifiedVec<<Element as Identifiable>::ID, Element>;
 
-//////////////////////////////////////////////
-///     Identifiable Element Constructors  ///
-//////////////////////////////////////////////
-impl<Element> IdentifiedVec<Element::ID, Element>
+impl<Element> IsIdentifiableVecOf<Element> for IdentifiedVecOf<Element>
 where
     Element: Identifiable,
 {
     /// Constructs a new, empty `IdentifiedVec<ID, Element>`, using `id()` on `Element`
     /// as id function.
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             order: Vec::new(),
             elements: HashMap::new(),
@@ -56,9 +54,9 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn from_iter<I>(unique_elements: I) -> Self
+    fn from_iter<It>(unique_elements: It) -> Self
     where
-        I: IntoIterator<Item = Element>,
+        It: IntoIterator<Item = Element>,
     {
         let mut _self = Self::new();
         unique_elements
@@ -83,7 +81,7 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn try_from_iter_select_unique_with<E, I>(
+    fn try_from_iter_select_unique_with<E, I>(
         elements: I,
         combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, E>,
     ) -> Result<Self, E>
@@ -109,7 +107,7 @@ where
     /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     #[inline]
-    pub fn from_iter_select_unique_with<I>(
+    fn from_iter_select_unique_with<I>(
         elements: I,
         combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
     ) -> Self

@@ -115,19 +115,6 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///     .iter()
 ///     .collect::<Vec<&User>>()
 /// );
-///
-/// // or mutate with `get_mut(id)`
-/// *users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
-/// assert_eq!(
-///     users.elements(),
-///     [
-///         User::new("u_42", "Tom Mervolo Dolder"),
-///         User::new("u_1337", "Yoda"),
-///         User::new("u_237", "Marie Curie"),
-///     ]
-///     .iter()
-///     .collect::<Vec<&User>>()
-/// );
 /// ```
 ///
 /// Or you can provide a closure that describes an element's identity:
@@ -372,17 +359,6 @@ where
     #[inline]
     fn index_of_id(&self, id: &I) -> Option<usize> {
         self.order.iter().position(|i| i == id)
-    }
-
-    /// Returns a mutable reference to the element identified by `id` if any, else None.
-    ///
-    /// - Parameter id: The id to find in the `identified_vec`.
-    /// - Returns: The mutable reference to the element identified by `id` if found in the `identified_vec`; otherwise,
-    ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `I` implements high-quality hashing.
-    #[inline]
-    fn get_mut(&mut self, id: &I) -> Option<&mut E> {
-        self.elements.get_mut(id)
     }
 
     ////////////////////

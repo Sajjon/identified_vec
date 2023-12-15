@@ -1,3 +1,7 @@
+use std::borrow::BorrowMut;
+use std::cell::RefMut;
+use std::ops::Deref;
+
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
 use crate::{Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
 
@@ -9,7 +13,26 @@ where
     Element: Identifiable,
 {
     fn from_identified_vec_of(identified_vec_of: IdentifiedVecOf<Element>) -> Self;
-    fn via(&self) -> &mut IdentifiedVecOf<Element>;
+    fn via_mut(&mut self) -> &mut IdentifiedVecOf<Element>;
+    fn via(&self) -> &IdentifiedVecOf<Element>;
+}
+
+impl<Element, U> IsIdentifiableVecOf<Element> for U
+where
+    U: ViaMarker,
+    Element: Identifiable,
+    U: IsIdentifiableVecOfVia<Element>,
+{
+    fn new() -> Self {
+        Self::from_identified_vec_of(IdentifiedVecOf::new())
+    }
+
+    fn from_iter<It>(unique_elements: It) -> Self
+    where
+        It: IntoIterator<Item = Element>,
+    {
+        Self::from_identified_vec_of(IdentifiedVecOf::from_iter(unique_elements))
+    }
 }
 
 impl<Element, U> IsIdentifiableVec<Element, Element::ID> for U
@@ -63,10 +86,6 @@ where
         self.via().index_of_id(id)
     }
 
-    fn get_mut(&mut self, id: &<Element as Identifiable>::ID) -> Option<&mut Element> {
-        self.via().get_mut(id)
-    }
-
     fn elements(&self) -> Vec<&Element> {
         self.via().elements()
     }
@@ -88,30 +107,30 @@ where
     }
 
     fn append(&mut self, element: Element) -> (bool, usize) {
-        self.via().append(element)
+        self.via_mut().append(element)
     }
 
     fn append_other<It>(&mut self, other: It)
     where
         It: IntoIterator<Item = Element>,
     {
-        self.via().append_other(other)
+        self.via_mut().append_other(other)
     }
 
     fn update_or_append(&mut self, element: Element) -> Option<Element> {
-        self.via().update_or_append(element)
+        self.via_mut().update_or_append(element)
     }
 
     fn update_at(&mut self, element: Element, index: usize) -> Element {
-        self.via().update_at(element, index)
+        self.via_mut().update_at(element, index)
     }
 
     fn insert(&mut self, element: Element, at: usize) -> (bool, usize) {
-        self.via().insert(element, at)
+        self.via_mut().insert(element, at)
     }
 
     fn update_or_insert(&mut self, element: Element, index: usize) -> (Option<Element>, usize) {
-        self.via().update_or_insert(element, index)
+        self.via_mut().update_or_insert(element, index)
     }
 
     /////////////
@@ -119,21 +138,21 @@ where
     /////////////
 
     fn remove_by_id(&mut self, id: &<Element as Identifiable>::ID) -> Option<Element> {
-        self.via().remove_by_id(id)
+        self.via_mut().remove_by_id(id)
     }
 
     fn remove(&mut self, element: &Element) -> Option<Element> {
-        self.via().remove(element)
+        self.via_mut().remove(element)
     }
 
     fn remove_at(&mut self, index: usize) -> Element {
-        self.via().remove_at(index)
+        self.via_mut().remove_at(index)
     }
 
     fn remove_at_offsets<It>(&mut self, offsets: It)
     where
         It: IntoIterator<Item = usize>,
     {
-        self.via().remove_at_offsets(offsets)
+        self.via_mut().remove_at_offsets(offsets)
     }
 }

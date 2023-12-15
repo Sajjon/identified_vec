@@ -88,14 +88,6 @@ where
     /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
     fn index_of_id(&self, id: &ID) -> Option<usize>;
 
-    /// Returns a mutable reference to the element identified by `id` if any, else None.
-    ///
-    /// - Parameter id: The id to find in the `identified_vec`.
-    /// - Returns: The mutable reference to the element identified by `id` if found in the `identified_vec`; otherwise,
-    ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
-    fn get_mut(&mut self, id: &ID) -> Option<&mut Element>;
-
     fn elements(&self) -> Vec<&Element>;
 
     /// Returns `true` if the `identified_vec` contains the `element.`
