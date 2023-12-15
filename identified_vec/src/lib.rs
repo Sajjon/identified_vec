@@ -132,6 +132,8 @@
 mod conflict_resolution_choice;
 mod identifiable_trait;
 mod is_identifiable_vec;
+mod is_identifiable_vec_of;
+mod is_identified_vec_via;
 mod primitives_identifiable;
 mod serde_error;
 mod vec;
@@ -151,6 +153,8 @@ pub mod identified_vec_of {
     //! skip the `id_of_element: fn(&Element) -> ID` closure when
     //! initializing a new identified vec.
     pub use crate::identifiable_trait::*;
+    pub use crate::is_identifiable_vec_of::*;
+    pub use crate::is_identified_vec_via::*;
     pub use crate::vec_of::*;
 
     #[cfg(feature = "id_prim")]

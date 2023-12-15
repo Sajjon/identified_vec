@@ -2,13 +2,13 @@ use crate::conflict_resolution_choice::ConflictResolutionChoice;
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub trait IsIdentifiableVec: Sized {
-    type Element;
-    type ID: Eq + Hash + Clone + Debug;
-
+pub trait IsIdentifiableVec<Element, ID>: Sized
+where
+    ID: Eq + Hash + Clone + Debug,
+{
     /// Constructs a new, empty `IdentifiedVec<I, E>` with the specified
     /// `id_of_element` closure
-    fn new_identifying_element(id_of_element: fn(&Self::Element) -> Self::ID) -> Self;
+    fn new_identifying_element(id_of_element: fn(&Element) -> ID) -> Self;
 
     /// Creates a new `identified_vec` from the elements in the given sequence, using a combining closure to
     /// determine the element for any elements with duplicate identity.
@@ -24,28 +24,26 @@ pub trait IsIdentifiableVec: Sized {
     ///   - id_of_element: The function which extracts the identifier for an element,
     ///   - combine: Closure trying to combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`), or `Err` if you prefer.
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `Self::ID`
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `ID`
     ///   implements high-quality hashing.
     fn try_from_iter_select_unique_ids_with<Er, It>(
         elements: It,
-        id_of_element: fn(&Self::Element) -> Self::ID,
-        combine: fn(
-            (usize, &Self::Element, &Self::Element),
-        ) -> Result<ConflictResolutionChoice, Er>,
+        id_of_element: fn(&Element) -> ID,
+        combine: fn((usize, &Element, &Element)) -> Result<ConflictResolutionChoice, Er>,
     ) -> Result<Self, Er>
     where
-        It: IntoIterator<Item = Self::Element>;
+        It: IntoIterator<Item = Element>;
 
     fn from_iter_select_unique_ids_with<It>(
         elements: It,
-        id_of_element: fn(&Self::Element) -> Self::ID,
-        combine: fn((usize, &Self::Element, &Self::Element)) -> ConflictResolutionChoice,
+        id_of_element: fn(&Element) -> ID,
+        combine: fn((usize, &Element, &Element)) -> ConflictResolutionChoice,
     ) -> Self
     where
-        It: IntoIterator<Item = Self::Element>;
+        It: IntoIterator<Item = Element>;
 
-    /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<Self::ID>`.
-    fn ids(&self) -> &Vec<Self::ID>;
+    ///The ids contained in this `identified_vec`, as an `Vec<ID>` (cloned)
+    fn ids(&self) -> Vec<ID>;
 
     /// Returns the number of elements in the `identified_vec`, also referred to as its 'length'.
     fn len(&self) -> usize;
@@ -72,7 +70,7 @@ pub trait IsIdentifiableVec: Sized {
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> Self::ID {
+    ///     fn id(&self) -> ID {
     ///         self.id
     ///     }
     /// }
@@ -87,30 +85,30 @@ pub trait IsIdentifiableVec: Sized {
     /// - Parameter id: The id to find in the `identified_vec`.
     /// - Returns: The index for the element identified by `id` if found in the `identified_vec`; otherwise,
     ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `Self::ID` implements high-quality hashing.
-    fn index_of_id(&self, id: &Self::ID) -> Option<usize>;
+    /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
+    fn index_of_id(&self, id: &ID) -> Option<usize>;
 
     /// Returns a mutable reference to the element identified by `id` if any, else None.
     ///
     /// - Parameter id: The id to find in the `identified_vec`.
     /// - Returns: The mutable reference to the element identified by `id` if found in the `identified_vec`; otherwise,
     ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `Self::ID` implements high-quality hashing.
-    fn get_mut(&mut self, id: &Self::ID) -> Option<&mut Self::Element>;
+    /// - Complexity: Expected to be O(1) on average, if `ID` implements high-quality hashing.
+    fn get_mut(&mut self, id: &ID) -> Option<&mut Element>;
 
-    fn elements(&self) -> Vec<&Self::Element>;
+    fn elements(&self) -> Vec<&Element>;
 
     /// Returns `true` if the `identified_vec` contains the `element.`
-    fn contains(&self, element: &Self::Element) -> bool;
+    fn contains(&self, element: &Element) -> bool;
 
     /// Returns `true if the `identified_vec` contains an element for the specified `id`
-    fn contains_id(&self, id: &Self::ID) -> bool;
+    fn contains_id(&self, id: &ID) -> bool;
 
     /// Returns a reference to the element corresponding to the `id`, if found, else `None`.
-    fn get(&self, id: &Self::ID) -> Option<&Self::Element>;
+    fn get(&self, id: &ID) -> Option<&Element>;
 
     /// Returns a reference to the element at index if found, else `None`.
-    fn get_at_index(&self, index: usize) -> Option<&Self::Element>;
+    fn get_at_index(&self, index: usize) -> Option<&Element>;
 
     /// Append a new member to the end of the `identified_vec`, if the `identified_vec` doesn't already contain it.
     ///
@@ -119,18 +117,18 @@ pub trait IsIdentifiableVec: Sized {
     ///   the operation added a new element, and `index` is the index of `item` in the resulting
     ///   `identified_vec`.
     /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
-    ///   the `Self::ID` type, if it implements high-quality hashing.
-    fn append(&mut self, element: Self::Element) -> (bool, usize);
+    ///   the `ID` type, if it implements high-quality hashing.
+    fn append(&mut self, element: Element) -> (bool, usize);
 
     /// Append the contents of an iterator to the end of the set, excluding elements that are already
     /// members.
     ///
     /// - Parameter elements: A finite sequence of elements to append.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::Element` type, if it implements high-quality hashing.
+    ///   operations on the `Element` type, if it implements high-quality hashing.
     fn append_other<It>(&mut self, other: It)
     where
-        It: IntoIterator<Item = Self::Element>;
+        It: IntoIterator<Item = Element>;
 
     /// Adds the given element to the `identified_vec` unconditionally, either appending it to the `identified_vec``, or
     /// replacing an existing value if it's already present.
@@ -139,8 +137,8 @@ pub trait IsIdentifiableVec: Sized {
     /// - Returns: The original element that was replaced by this operation, or `None` if the value was
     ///   appended to the end of the collection.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::ID` type, if it implements high-quality hashing.
-    fn update_or_append(&mut self, element: Self::Element) -> Option<Self::Element>;
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    fn update_or_append(&mut self, element: Element) -> Option<Element>;
 
     /// Replace the member at the given index with a new value of the same identity.
     ///
@@ -148,7 +146,7 @@ pub trait IsIdentifiableVec: Sized {
     ///   the identity of the original value.
     /// - Parameter index: The index of the element to be replaced.
     /// - Returns: The original element that was replaced.
-    fn update_at(&mut self, element: Self::Element, index: usize) -> Self::Element;
+    fn update_at(&mut self, element: Element, index: usize) -> Element;
 
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
     /// it.
@@ -160,9 +158,9 @@ pub trait IsIdentifiableVec: Sized {
     ///   requested.
     ///
     /// - Complexity: The operation is expected to perform amortized O(`self.count`) copy, hash, and
-    ///   compare operations on the `Self::ID` type, if it implements high-quality hashing. (Insertions need
+    ///   compare operations on the `ID` type, if it implements high-quality hashing. (Insertions need
     ///   to make room in the storage identified_vec to add the inserted element.)
-    fn insert(&mut self, element: Self::Element, at: usize) -> (bool, usize);
+    fn insert(&mut self, element: Element, at: usize) -> (bool, usize);
 
     /// Adds the given element into the set unconditionally, either inserting it at the specified
     /// index, or replacing an existing value if it's already present.
@@ -173,12 +171,8 @@ pub trait IsIdentifiableVec: Sized {
     /// - Returns: The original element that was replaced by this operation, or `None` if the value was
     ///   newly inserted into the collection.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::ID` type, if it implements high-quality hashing.
-    fn update_or_insert(
-        &mut self,
-        element: Self::Element,
-        index: usize,
-    ) -> (Option<Self::Element>, usize);
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    fn update_or_insert(&mut self, element: Element, index: usize) -> (Option<Element>, usize);
 
     /////////////
     // Remove  //
@@ -203,7 +197,7 @@ pub trait IsIdentifiableVec: Sized {
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> Self::ID {
+    ///     fn id(&self) -> ID {
     ///         self.id
     ///     }
     /// }
@@ -220,7 +214,7 @@ pub trait IsIdentifiableVec: Sized {
     /// - Parameter id: The id of the element to be removed from the `identified_vec`.
     /// - Returns: The element that was removed, or `None` if the element was not present in the array.
     /// - Complexity: O(`count`)
-    fn remove_by_id(&mut self, id: &Self::ID) -> Option<Self::Element>;
+    fn remove_by_id(&mut self, id: &ID) -> Option<Element>;
 
     /// Removes the given element from the `identified_vec`.
     ///
@@ -231,7 +225,7 @@ pub trait IsIdentifiableVec: Sized {
     /// - Parameter element: The element to remove.
     /// - Returns: The value that was removed, or `None` if the element was not present in the `identified_vec`.
     /// - Complexity: O(`count`)
-    fn remove(&mut self, element: &Self::Element) -> Option<Self::Element>;
+    fn remove(&mut self, element: &Element) -> Option<Element>;
 
     /// Removes and returns the element at the specified position.
     ///
@@ -242,7 +236,7 @@ pub trait IsIdentifiableVec: Sized {
     /// - Precondition: `index` must be a valid index of the collection that is not equal to the
     ///   collection's end index.
     /// - Complexity: O(`count`)
-    fn remove_at(&mut self, index: usize) -> Self::Element;
+    fn remove_at(&mut self, index: usize) -> Element;
 
     /// Removes all the elements at the specified `offsets` from the `identified_vec`.
     ///

@@ -2,7 +2,8 @@ use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
-    IdentifiedVecOfSerdeFailure, IsIdentifiableVec,
+    IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf, IsIdentifiableVecOfVia,
+    ViaMarker,
 };
 
 use identified_vec_macros::newtype_identified_vec;
@@ -536,7 +537,24 @@ fn hash() {
     )
 }
 
-// Test macro
+// Test IsIdentifiedVecVia
+struct CollectionOfUsersVia(IdentifiedVecOf<User>);
+impl ViaMarker for CollectionOfUsersVia {}
+impl IsIdentifiableVecOf<User> for CollectionOfUsersVia {}
+impl IsIdentifiableVecOfVia<User> for CollectionOfUsersVia {
+    fn via(&self) -> &mut IdentifiedVecOf<User> {
+        todo!()
+    }
+    fn from_identified_vec_of(identified_vec_of: IdentifiedVecOf<User>) -> Self {
+        Self(identified_vec_of)
+    }
+}
+
+// impl IsIdentifiableVecOfVia for CollectionOfUsersVia {
+//     fn via(&self) -> &mut IdentifiedVecOf<User> {
+//         todo!()
+//     }
+// }
 
 #[test]
 fn test_macro() {

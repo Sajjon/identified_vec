@@ -46,7 +46,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// impl Identifiable for User {
 ///     type ID = &'static str;
-///     fn id(&self) -> Self::ID {
+///     fn id(&self) -> I {
 ///         self.id
 ///     }
 /// }
@@ -76,7 +76,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///     .collect::<Vec<&User>>()
 /// );
 ///
-/// // Self::Element with same Self::ID is not appended:
+/// // E with same I is not appended:
 /// users.append(User::new("u_42", "Tom Mervolo Dolder"));
 /// assert_eq!(
 ///     users.elements(),
@@ -89,7 +89,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///     .collect::<Vec<&User>>()
 /// );
 ///
-/// // Self::Element with same Self::ID replaces existing if an `update_*` method is used:
+/// // E with same I replaces existing if an `update_*` method is used:
 /// // e.g. `update_or_insert`:
 /// users.update_or_insert(User::new("u_42", "Tom Mervolo Dolder"), 0);
 /// assert_eq!(
@@ -148,7 +148,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 /// # Performance
 ///
 /// Like the standard `HashMap` type, the performance of hashing operations in
-/// `IdentifiedVec` is highly sensitive to the quality of hashing implemented by the `Self::ID`
+/// `IdentifiedVec` is highly sensitive to the quality of hashing implemented by the `I`
 /// type. Failing to correctly implement hashing can easily lead to unacceptable performance, with
 /// the severity of the effect increasing with the size of the underlying hash table.
 ///
@@ -157,7 +157,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 /// ensure hashed collection types exhibit their target performance, it is important to ensure that
 /// such collisions cannot be induced merely by adding a particular list of members to the set.
 ///
-/// When `Self::ID` implements `Hash` correctly, testing for membership in an ordered set is expected
+/// When `I` implements `Hash` correctly, testing for membership in an ordered set is expected
 /// to take O(1) equality checks on average. Hash collisions can still occur organically, so the
 /// worst-case lookup performance is technically still O(*n*) (where *n* is the size of the set);
 /// however, long lookup chains are unlikely to occur in practice.
@@ -178,20 +178,17 @@ where
     /// The storage of elements.
     pub(crate) elements: HashMap<I, E>,
 
-    /// Function which extracts the Self::ID of an Self::Element.
+    /// Function which extracts the I of an E.
     pub(crate) _id_of_element: fn(&E) -> I,
 }
 
-impl<I, E> IsIdentifiableVec for IdentifiedVec<I, E>
+impl<I, E> IsIdentifiableVec<E, I> for IdentifiedVec<I, E>
 where
     I: Eq + Hash + Clone + Debug,
 {
     ////////////////////
     //  Constructors  //
     ////////////////////
-
-    type ID = I;
-    type Element = E;
 
     /// Constructs a new, empty `IdentifiedVec<I, E>` with the specified
     /// `id_of_element` closure
@@ -218,22 +215,20 @@ where
     ///   - id_of_element: The function which extracts the identifier for an element,
     ///   - combine: Closure trying to combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`), or `Err` if you prefer.
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `Self::ID`
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `I`
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     fn try_from_iter_select_unique_ids_with<Er, It>(
         elements: It,
-        id_of_element: fn(&Self::Element) -> Self::ID,
-        combine: fn(
-            (usize, &Self::Element, &Self::Element),
-        ) -> Result<ConflictResolutionChoice, Er>,
+        id_of_element: fn(&E) -> I,
+        combine: fn((usize, &E, &E)) -> Result<ConflictResolutionChoice, Er>,
     ) -> Result<Self, Er>
     where
-        It: IntoIterator<Item = Self::Element>,
+        It: IntoIterator<Item = E>,
     {
-        let mut _order = Vec::<Self::ID>::new();
-        let mut _elements = HashMap::<Self::ID, Self::Element>::new();
+        let mut _order = Vec::<I>::new();
+        let mut _elements = HashMap::<I, E>::new();
 
         for element in elements.into_iter() {
             let id = id_of_element(&element);
@@ -278,20 +273,20 @@ where
     ///   - id_of_element: The function which extracts the identifier for an element,
     ///   - combine: Closure used combine elements `(index, first, last)` with duplicate ids, returning which element to use, by use of ConflictResolutionChoice (`ChooseFirst` or `ChooseLast`)
     /// - Returns: A new `identified_vec` initialized with the unique elements of `elements`.
-    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `Self::ID`
+    /// - Complexity: Expected O(*n*) on average, where *n* is the count of elements, if `I`
     ///   implements high-quality hashing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     fn from_iter_select_unique_ids_with<It>(
         elements: It,
-        id_of_element: fn(&Self::Element) -> Self::ID,
-        combine: fn((usize, &Self::Element, &Self::Element)) -> ConflictResolutionChoice,
+        id_of_element: fn(&E) -> I,
+        combine: fn((usize, &E, &E)) -> ConflictResolutionChoice,
     ) -> Self
     where
-        It: IntoIterator<Item = Self::Element>,
+        It: IntoIterator<Item = E>,
     {
-        let mut _order = Vec::<Self::ID>::new();
-        let mut _elements = HashMap::<Self::ID, Self::Element>::new();
+        let mut _order = Vec::<I>::new();
+        let mut _elements = HashMap::<I, E>::new();
 
         for element in elements.into_iter() {
             let id = id_of_element(&element);
@@ -319,12 +314,12 @@ where
     //  Public Get    //
     ////////////////////
 
-    /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<Self::ID>`.
+    /// A read-only collection view for the ids contained in this `identified_vec`, as an `&Vec<I>`.
     ///
     /// - Complexity: O(1)
     #[inline]
-    fn ids(&self) -> &Vec<Self::ID> {
-        &self.order
+    fn ids(&self) -> Vec<I> {
+        self.order.clone()
     }
 
     /// Returns the number of elements in the `identified_vec`, also referred to as its 'length'.
@@ -358,7 +353,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> Self::ID {
+    ///     fn id(&self) -> I {
     ///         self.id
     ///     }
     /// }
@@ -373,9 +368,9 @@ where
     /// - Parameter id: The id to find in the `identified_vec`.
     /// - Returns: The index for the element identified by `id` if found in the `identified_vec`; otherwise,
     ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `Self::ID` implements high-quality hashing.
+    /// - Complexity: Expected to be O(1) on average, if `I` implements high-quality hashing.
     #[inline]
-    fn index_of_id(&self, id: &Self::ID) -> Option<usize> {
+    fn index_of_id(&self, id: &I) -> Option<usize> {
         self.order.iter().position(|i| i == id)
     }
 
@@ -384,9 +379,9 @@ where
     /// - Parameter id: The id to find in the `identified_vec`.
     /// - Returns: The mutable reference to the element identified by `id` if found in the `identified_vec`; otherwise,
     ///   `None`.
-    /// - Complexity: Expected to be O(1) on average, if `Self::ID` implements high-quality hashing.
+    /// - Complexity: Expected to be O(1) on average, if `I` implements high-quality hashing.
     #[inline]
-    fn get_mut(&mut self, id: &Self::ID) -> Option<&mut Self::Element> {
+    fn get_mut(&mut self, id: &I) -> Option<&mut E> {
         self.elements.get_mut(id)
     }
 
@@ -398,35 +393,35 @@ where
     ///
     /// N.B. that this method is not constant time.
     ///
-    /// If `Self::Element` implements `Clone` you can use `self.items()` which returns a `Vec<Self::Element>`, of cloned elements.
+    /// If `E` implements `Clone` you can use `self.items()` which returns a `Vec<E>`, of cloned elements.
     ///
     /// - Complexity: O(n)
     #[inline]
-    fn elements(&self) -> Vec<&Self::Element> {
+    fn elements(&self) -> Vec<&E> {
         self.iter().collect()
     }
 
     /// Returns `true` if the `identified_vec` contains the `element.`
     #[inline]
-    fn contains(&self, element: &Self::Element) -> bool {
+    fn contains(&self, element: &E) -> bool {
         self.elements.contains_key(&self.id(&element))
     }
 
     /// Returns `true if the `identified_vec` contains an element for the specified `id`
     #[inline]
-    fn contains_id(&self, id: &Self::ID) -> bool {
+    fn contains_id(&self, id: &I) -> bool {
         self.elements.contains_key(id)
     }
 
     /// Returns a reference to the element corresponding to the `id`, if found, else `None`.
     #[inline]
-    fn get(&self, id: &Self::ID) -> Option<&Self::Element> {
+    fn get(&self, id: &I) -> Option<&E> {
         self.elements.get(id)
     }
 
     /// Returns a reference to the element at index if found, else `None`.
     #[inline]
-    fn get_at_index(&self, index: usize) -> Option<&Self::Element> {
+    fn get_at_index(&self, index: usize) -> Option<&E> {
         self.order.get(index).and_then(|id| self.get(id))
     }
 
@@ -437,7 +432,7 @@ where
     ///   the operation added a new element, and `index` is the index of `item` in the resulting
     ///   `identified_vec`.
     /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
-    ///   the `Self::ID` type, if it implements high-quality hashing.
+    ///   the `I` type, if it implements high-quality hashing.
     #[inline]
     fn append(&mut self, element: E) -> (bool, usize) {
         self.insert(element, self.end_index())
@@ -448,7 +443,7 @@ where
     ///
     /// - Parameter elements: A finite sequence of elements to append.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::Element` type, if it implements high-quality hashing.
+    ///   operations on the `E` type, if it implements high-quality hashing.
     #[inline]
     fn append_other<It>(&mut self, other: It)
     where
@@ -464,7 +459,7 @@ where
     /// - Returns: The original element that was replaced by this operation, or `None` if the value was
     ///   appended to the end of the collection.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::ID` type, if it implements high-quality hashing.
+    ///   operations on the `I` type, if it implements high-quality hashing.
     #[inline]
     fn update_or_append(&mut self, element: E) -> Option<E> {
         let id = self.id(&element);
@@ -505,7 +500,7 @@ where
     ///   requested.
     ///
     /// - Complexity: The operation is expected to perform amortized O(`self.count`) copy, hash, and
-    ///   compare operations on the `Self::ID` type, if it implements high-quality hashing. (Insertions need
+    ///   compare operations on the `I` type, if it implements high-quality hashing. (Insertions need
     ///   to make room in the storage identified_vec to add the inserted element.)
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
@@ -527,7 +522,7 @@ where
     /// - Returns: The original element that was replaced by this operation, or `None` if the value was
     ///   newly inserted into the collection.
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
-    ///   operations on the `Self::ID` type, if it implements high-quality hashing.
+    ///   operations on the `I` type, if it implements high-quality hashing.
     #[inline]
     fn update_or_insert(&mut self, element: E, index: usize) -> (Option<E>, usize) {
         let id = self.id(&element);
@@ -556,7 +551,7 @@ where
     ///
     /// impl Identifiable for User {
     ///     type ID = &'static str;
-    ///     fn id(&self) -> Self::ID {
+    ///     fn id(&self) -> I {
     ///         self.id
     ///     }
     /// }
@@ -617,10 +612,7 @@ where
             .order
             .get(index)
             .expect("Precondition failure, index out of bounds");
-        let removed = self
-            .elements
-            .remove(id)
-            .expect("Self::Element of existing id");
+        let removed = self.elements.remove(id).expect("E of existing id");
         self.order.remove(index);
         return removed;
     }
@@ -796,13 +788,13 @@ where
         self.len()
     }
 
-    /// Returns the Self::ID of an Self::Element
+    /// Returns the I of an E
     #[inline]
     fn id(&self, of: &E) -> I {
         (self._id_of_element)(of)
     }
 
-    /// Inserting Self::ID at an index, returning if it did, if not, the index of the existing.
+    /// Inserting I at an index, returning if it did, if not, the index of the existing.
     #[cfg(not(tarpaulin_include))] // false negative
     #[inline]
     fn _insert_id_at(&mut self, id: I, index: usize) -> (bool, usize) {
