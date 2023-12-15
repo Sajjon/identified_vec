@@ -567,7 +567,14 @@ fn isid() {
 
     let mut sut = CollectionOfUsersVia::new();
     sut.append(User::blob_jr());
-    assert_eq!(sut.items(), [User::blob_jr()])
+    assert_eq!(sut.items(), [User::blob_jr()]);
+    sut.remove_at(0);
+    assert_eq!(sut.len(), 0);
+    sut.update_or_append(User::blob_sr());
+    sut.update_or_append(User::blob_sr());
+    assert_eq!(sut.items(), [User::blob_sr()]);
+    sut.update_or_append(User::blob_jr());
+    assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }
 
 // #[test]
