@@ -1,7 +1,7 @@
 use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
-    ConflictResolutionChoice, Identifiable, IdentifiedVec, IdentifiedVecOf,
+    ConflictResolutionChoice, Error, Identifiable, IdentifiedVec, IdentifiedVecOf,
     IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf, IsIdentifiableVecOfVia,
     ViaMarker,
 };
@@ -317,6 +317,72 @@ fn append() {
 }
 
 #[test]
+fn try_append_unique_element() {
+    let mut identified_vec = SUT::from_iter([1, 2, 3]);
+    let result = identified_vec.try_append_unique_element(4);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().1, 3);
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
+
+    let mut identified_vec = SUT::from_iter([1, 2, 3]);
+    let result = identified_vec.try_append_unique_element(2);
+    assert!(result.is_err());
+    assert_eq!(result, Err(Error::ElementWithSameValueFound(format!("2"))));
+    assert_eq!(identified_vec.items(), [1, 2, 3]);
+
+    let mut identified_vec =
+        IdentifiedVecOf::from_iter([User::blob(), User::blob_jr(), User::blob_sr()]);
+    let result = identified_vec.try_append_unique_element(User::new(2, "Blob blob Jr"));
+    assert!(result.is_err());
+    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
+    assert_eq!(
+        identified_vec.items(),
+        [User::blob(), User::blob_jr(), User::blob_sr()]
+    );
+}
+
+#[test]
+fn try_append_new_unique_element() {
+    let mut identified_vec = SUT::from_iter([1, 2, 3]);
+    let result = identified_vec.try_append_new(4);
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().1, 3);
+    assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
+
+    let mut identified_vec: Users = IdentifiedVecOf::new();
+    identified_vec.append(User::blob());
+    identified_vec.append(User::blob_jr());
+    identified_vec.append(User::blob_sr());
+    let result = identified_vec.try_append_new(User::new(4, "Blob Jr Jr"));
+    assert!(result.is_ok());
+    assert_eq!(result, Ok((true, 3)));
+    assert_eq!(
+        identified_vec.items(),
+        [
+            User::blob(),
+            User::blob_jr(),
+            User::blob_sr(),
+            User::new(4, "Blob Jr Jr")
+        ]
+    );
+}
+
+#[test]
+fn try_append_element_with_existing_id() {
+    let mut identified_vec: Users = IdentifiedVecOf::new();
+    identified_vec.append(User::blob());
+    identified_vec.append(User::blob_jr());
+    identified_vec.append(User::blob_sr());
+    let result = identified_vec.try_append_new(User::new(2, "Blob Jr Jr"));
+    assert!(result.is_err());
+    assert_eq!(result, Err(Error::ElementWithSameIDFound(format!("2"))));
+    assert_eq!(
+        identified_vec.items(),
+        [User::blob(), User::blob_jr(), User::blob_sr()]
+    );
+}
+
+#[test]
 fn append_other() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     identified_vec.append_other([1, 4, 3, 5]);
@@ -340,6 +406,14 @@ fn insert() {
 fn update_at() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.update_at(2, 1), 2)
+}
+
+#[test]
+fn update_with() {
+    let mut sut = Users::new();
+    sut.append(User::new(2, "Blob, Jr."));
+    sut.update_with(&2, |u| u.name.borrow_mut().make_ascii_uppercase());
+    assert_eq!(sut.items(), [User::new(2, "BLOB, JR.")]);
 }
 
 #[test]
@@ -372,6 +446,28 @@ fn update_or_append() {
     assert_eq!(identified_vec.update_or_append(4), None);
     assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
     assert_eq!(identified_vec.update_or_append(2), Some(2));
+}
+
+#[test]
+fn try_update() {
+    let mut identified_vec = SUT::from_iter([1, 2, 3]);
+    assert_eq!(
+        identified_vec.try_update(4),
+        Err(Error::ExpectedElementNotPresent(format!("4")))
+    );
+    assert_eq!(identified_vec.items(), [1, 2, 3]);
+
+    let mut identified_vec: Users = IdentifiedVecOf::new();
+    identified_vec.append(User::blob());
+    identified_vec.append(User::blob_jr());
+    identified_vec.append(User::blob_sr());
+    let result = identified_vec.try_update(User::new(2, "Blob Jr Sr"));
+    assert!(result.is_ok());
+    assert_eq!(result, Ok(User::blob_jr()));
+    assert_eq!(
+        identified_vec.items(),
+        [User::blob(), User::new(2, "Blob Jr Sr"), User::blob_sr()]
+    );
 }
 
 #[test]

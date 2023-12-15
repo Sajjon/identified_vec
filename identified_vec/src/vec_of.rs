@@ -4,7 +4,7 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
-use crate::serde_error::IdentifiedVecOfSerdeFailure;
+use crate::errors::IdentifiedVecOfSerdeFailure;
 use crate::IsIdentifiableVecOf;
 use crate::{
     conflict_resolution_choice::ConflictResolutionChoice, is_identifiable_vec::IsIdentifiableVec,

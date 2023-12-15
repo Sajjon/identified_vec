@@ -1,4 +1,5 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
+use crate::Error;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -140,6 +141,10 @@ where
     /// - Returns: The original element that was replaced.
     fn update_at(&mut self, element: Element, index: usize) -> Element;
 
+    fn update_with<F>(&mut self, id: &ID, mutate: F) -> bool
+    where
+        F: Fn(&mut Element);
+
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
     /// it.
     ///
@@ -165,6 +170,14 @@ where
     /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
     ///   operations on the `ID` type, if it implements high-quality hashing.
     fn update_or_insert(&mut self, element: Element, index: usize) -> (Option<Element>, usize);
+
+    /// Try to update the given element to the `identified_vec` if a element with the same ID is already present.
+    ///
+    /// - Parameter item: The value to append or replace.
+    /// - Returns: A Result with either the original element that was replaced by this operation, or a Error, `Error::ExpectedElementNotPresent`, specifying that the expected element is not present within the collection.
+    /// - Complexity: The operation is expected to perform amortized O(1) copy, hash, and compare
+    ///   operations on the `ID` type, if it implements high-quality hashing.
+    fn try_update(&mut self, element: Element) -> Result<Element, Error>;
 
     /////////////
     // Remove  //

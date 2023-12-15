@@ -116,13 +116,14 @@
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
+mod Is_identifiable_vec;
 mod conflict_resolution_choice;
+mod errors;
 mod identifiable_trait;
 mod is_identifiable_vec;
 mod is_identifiable_vec_of;
 mod is_identified_vec_via;
 mod primitives_identifiable;
-mod serde_error;
 mod vec;
 mod vec_of;
 
@@ -147,8 +148,7 @@ pub mod identified_vec_of {
     #[cfg(feature = "id_prim")]
     pub use crate::primitives_identifiable::*;
 
-    #[cfg(feature = "serde")]
-    pub use crate::serde_error::*;
+    pub use crate::errors::*;
 }
 
 pub use crate::identified_vec::*;
