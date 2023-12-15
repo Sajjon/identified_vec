@@ -111,52 +111,37 @@ fn get() {
     assert_eq!(identified_vec.get(&3), Some(&User::blob_sr()));
 
     // 1
-    let id: &u16 = &1;
-    // identified_vec
-    //     .get_mut(id)
-    //     .unwrap()
-    //     .name
-    //     .borrow_mut()
-    //     .push_str(", Esq.");
-    // assert_eq!(
-    //     identified_vec.get(id),
-    //     Some(&User::new(id.clone(), "Blob, Esq."))
-    // );
-    // identified_vec.upd
+    let mut id: &u16 = &1;
+    identified_vec.update_with(id, |u| u.name.borrow_mut().push_str(", Esq."));
 
-    // // 2
-    // id = &2;
-    // identified_vec
-    //     .get_mut(id)
-    //     .unwrap()
-    //     .name
-    //     .borrow_mut()
-    //     .drain(4..9);
-    // assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
+    assert_eq!(
+        identified_vec.get(id),
+        Some(&User::new(id.clone(), "Blob, Esq."))
+    );
 
-    // // 3
-    // id = &3;
-    // identified_vec
-    //     .get_mut(id)
-    //     .unwrap()
-    //     .name
-    //     .borrow_mut()
-    //     .drain(4..9);
-    // assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
+    // 2
+    id = &2;
+    identified_vec.update_with(id, |u| _ = u.name.borrow_mut().drain(4..9));
+    assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
 
-    // identified_vec.remove_by_id(id);
-    // assert_eq!(identified_vec.get(id), None);
-    // identified_vec.append(User::new(4, "Blob, Sr."));
-    // assert_eq!(
-    //     identified_vec.elements(),
-    //     [
-    //         User::new(1, "Blob, Esq."),
-    //         User::new(2, "Blob"),
-    //         User::new(4, "Blob, Sr."),
-    //     ]
-    //     .iter()
-    //     .collect::<Vec<&User>>()
-    // );
+    // 3
+    id = &3;
+    identified_vec.update_with(id, |u| _ = u.name.borrow_mut().drain(4..9));
+    assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
+
+    identified_vec.remove_by_id(id);
+    assert_eq!(identified_vec.get(id), None);
+    identified_vec.append(User::new(4, "Blob, Sr."));
+    assert_eq!(
+        identified_vec.elements(),
+        [
+            User::new(1, "Blob, Esq."),
+            User::new(2, "Blob"),
+            User::new(4, "Blob, Sr."),
+        ]
+        .iter()
+        .collect::<Vec<&User>>()
+    );
 }
 
 #[test]
