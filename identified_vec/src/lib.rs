@@ -129,7 +129,9 @@
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
+mod conflict_resolution_choice;
 mod identifiable_trait;
+mod is_identifiable_vec;
 mod primitives_identifiable;
 mod serde_error;
 mod vec;
@@ -137,6 +139,8 @@ mod vec_of;
 
 pub mod identified_vec {
     //! A collection of unique identifiable elements which retains **insertion** order.
+    pub use crate::conflict_resolution_choice::*;
+    pub use crate::is_identifiable_vec::*;
     pub use crate::vec::*;
 }
 
@@ -158,4 +162,3 @@ pub mod identified_vec_of {
 
 pub use crate::identified_vec::*;
 pub use crate::identified_vec_of::*;
-pub use crate::vec::IsIdentifiableVec;

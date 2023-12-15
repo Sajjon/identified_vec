@@ -6,9 +6,9 @@ use std::fmt::Debug;
 #[cfg(feature = "serde")]
 use crate::serde_error::IdentifiedVecOfSerdeFailure;
 use crate::{
-    identified_vec_of::Identifiable,
-    vec::{ConflictResolutionChoice, IdentifiedVec, IsIdentifiableVec},
+    conflict_resolution_choice::ConflictResolutionChoice, is_identifiable_vec::IsIdentifiableVec,
 };
+use crate::{identified_vec_of::Identifiable, vec::IdentifiedVec};
 
 #[cfg(feature = "serde")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
