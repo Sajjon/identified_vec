@@ -3,7 +3,7 @@ use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 use identified_vec::{
     ConflictResolutionChoice, Error, Identifiable, IdentifiedVec, IdentifiedVecOf,
     IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf, IsIdentifiableVecOfVia,
-    ViaMarker,
+    ItemsCloned, ViaMarker,
 };
 
 use identified_vec_macros::newtype_identified_vec;

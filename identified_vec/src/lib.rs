@@ -116,7 +116,6 @@
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
-mod Is_identifiable_vec;
 mod conflict_resolution_choice;
 mod errors;
 mod identifiable_trait;

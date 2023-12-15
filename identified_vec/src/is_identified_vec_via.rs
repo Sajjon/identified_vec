@@ -1,5 +1,7 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
-use crate::{Error, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
+use crate::{
+    Error, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf, ItemsCloned,
+};
 
 /// https://stackoverflow.com/a/66537661/1311272
 pub trait ViaMarker {}
@@ -30,6 +32,17 @@ where
         It: IntoIterator<Item = Element>,
     {
         Self::from_identified_vec_of(IdentifiedVecOf::from_iter(unique_elements))
+    }
+}
+
+impl<Element, U> ItemsCloned<Element> for U
+where
+    U: ViaMarker,
+    Element: Identifiable + Clone,
+    U: IsIdentifiableVecOfVia<Element>,
+{
+    fn items(&self) -> Vec<Element> {
+        self.via().items()
     }
 }
 

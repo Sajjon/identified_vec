@@ -646,7 +646,14 @@ where
     }
 }
 
-impl<I, E> IdentifiedVec<I, E>
+pub trait ItemsCloned<Element>
+where
+    Element: Clone,
+{
+    fn items(&self) -> Vec<Element>;
+}
+
+impl<I, E> ItemsCloned<E> for IdentifiedVec<I, E>
 where
     E: Clone,
     I: Eq + Hash + Clone + Debug,
@@ -659,7 +666,7 @@ where
     ///
     /// - Complexity: O(n)
     #[inline]
-    pub fn items(&self) -> Vec<E> {
+    fn items(&self) -> Vec<E> {
         self.iter().map(|e| e.clone()).collect()
     }
 }

@@ -17,12 +17,5 @@ macro_rules! newtype_identified_vec {
                 Self(identified_vec_of)
             }
         }
-
-        impl $struct_name {
-            #[inline]
-            pub fn items(&self) -> Vec<$item_ty> {
-                self.0.items()
-            }
-        }
     };
 }
