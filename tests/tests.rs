@@ -577,9 +577,24 @@ fn isid() {
     assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }
 
+#[test]
+fn test_macro() {
+    newtype_identified_vec!(of: User, named: CollectionOfUsers);
+
+    let mut sut = CollectionOfUsers::new();
+    sut.append(User::blob_jr());
+    assert_eq!(sut.items(), [User::blob_jr()]);
+    sut.remove_at(0);
+    assert_eq!(sut.len(), 0);
+    sut.update_or_append(User::blob_sr());
+    sut.update_or_append(User::blob_sr());
+    assert_eq!(sut.items(), [User::blob_sr()]);
+    sut.update_or_append(User::blob_jr());
+    assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
+}
+
 // #[test]
 // fn test_macro() {
-//     newtype_identified_vec!(of: User, named: CollectionOfUsers);
 //     let mut users = CollectionOfUsers::new();
 //     users.0.append(User::blob());
 //     assert_eq!(users.0.items(), [User::blob()])
