@@ -3,6 +3,7 @@ macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
         use identified_vec::IdentifiedVecIntoIterator;
 
+        #[derive(Debug, Clone, Eq, PartialEq)]
         pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 
         impl ViaMarker for $struct_name {}
@@ -29,22 +30,37 @@ macro_rules! newtype_identified_vec {
             }
         }
 
-        // impl<I, E> $struct_name<I, E>
-        // where
-        //     I: Eq + Hash + Clone + Debug,
-        // {
-        //     pub fn iter(&self) -> IdentifiedVecIterator<I, E> {
-        //         IdentifiedVecIterator::new(self)
-        //     }
-        // }
+        impl Serialize for $struct_name
+        where
+            $item_ty: Serialize + Identifiable + Debug + Clone,
+        {
+            fn serialize<S>(
+                &self,
+                serializer: S,
+            ) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+            where
+                S: Serializer,
+            {
+                Vec::serialize(&self.elements(), serializer)
+            }
+        }
 
-        // impl IntoIterator for $struct_name {
-        //     type Item = $item_ty;
-        //     type IntoIter = IdentifiedVecIntoIterator<<$item_ty as Identifiable>::ID, $item_ty>;
-
-        //     fn into_iter(self) -> Self::IntoIter {
-        //         Self::IntoIter::new(self)
-        //     }
-        // }
+        impl<'de> Deserialize<'de> for $struct_name
+        where
+            $item_ty: Deserialize<'de> + Identifiable + Debug + Clone,
+        {
+            #[cfg(not(tarpaulin_include))] // false negative
+            fn deserialize<D: Deserializer<'de>>(
+                deserializer: D,
+            ) -> Result<$struct_name, D::Error> {
+                let elements = Vec::<$item_ty>::deserialize(deserializer)?;
+                IdentifiedVecOf::<$item_ty>::try_from_iter_select_unique_with(
+                    elements,
+                    |(idx, _, _)| Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx)),
+                )
+                .map(|id_vec_of| Self::from_identified_vec_of(id_vec_of))
+                .map_err(de::Error::custom)
+            }
+        }
     };
 }

@@ -6,14 +6,15 @@ use identified_vec::{
     ItemsCloned, ViaMarker,
 };
 
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
 use identified_vec_macros::newtype_identified_vec;
 
-#[derive(Eq, PartialEq, Clone)]
+#[derive(Eq, PartialEq, Clone, Serialize, Deserialize)]
 pub struct User {
     pub id: u16,
     pub name: RefCell<String>,
 }
-
 impl User {
     fn new(id: u16, name: &str) -> Self {
         if name.is_empty() {
@@ -483,7 +484,7 @@ fn remove_at_out_of_bounds() {
 }
 
 #[test]
-fn serde() {
+fn serde_identified_vec_of() {
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
         serde_json::to_value(identified_vec.clone())
@@ -504,6 +505,34 @@ fn serde() {
     );
 
     assert!(serde_json::from_str::<SUT>("invalid").is_err(),);
+}
+
+#[test]
+fn serde_is_identified_vec() {
+    newtype_identified_vec!(of: u32, named: Ints);
+
+    let identified_vec = Ints::from_iter([1, 2, 3]);
+    let cloned = identified_vec.clone();
+    assert_eq!(&cloned, &identified_vec);
+    assert_eq!(
+        serde_json::to_value(identified_vec.clone())
+            .and_then(|j| serde_json::from_value::<Ints>(j))
+            .unwrap(),
+        identified_vec
+    );
+    assert_eq!(
+        serde_json::from_str::<Ints>("[1,2,3]").unwrap(),
+        identified_vec
+    );
+    assert_eq!(serde_json::to_string(&identified_vec).unwrap(), "[1,2,3]");
+    assert_eq!(
+        serde_json::from_str::<Ints>("[1,1,1]")
+            .expect_err("should fail")
+            .to_string(),
+        "Duplicate element at offset 1"
+    );
+
+    assert!(serde_json::from_str::<Ints>("invalid").is_err(),);
 }
 
 #[test]
