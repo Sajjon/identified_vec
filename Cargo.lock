@@ -21,7 +21,7 @@ dependencies = [
 
 [[package]]
 name = "identified_vec"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "serde",
  "thiserror",
@@ -29,7 +29,7 @@ dependencies = [
 
 [[package]]
 name = "identified_vec_macros"
-version = "0.1.0"
+version = "0.1.5"
 dependencies = [
  "identified_vec",
  "proc-macro2",
