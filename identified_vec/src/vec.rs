@@ -827,26 +827,6 @@ where
     }
 }
 
-///////////////////////
-////    DEBUG       ///
-///////////////////////
-impl<I, E> IdentifiedVec<I, E>
-where
-    E: Debug,
-    I: Eq + Hash + Clone + Debug,
-{
-    #[cfg(not(tarpaulin_include))]
-    #[cfg(debug_assertions)]
-    pub fn debug(&self) {
-        println!("{}", self.debug_str());
-    }
-
-    #[cfg(debug_assertions)]
-    pub fn debug_str(&self) -> String {
-        format!("order: {:?}\nelements: {:?}", self.order, self.elements)
-    }
-}
-
 impl<ID, Element> IdentifiedVec<ID, Element>
 where
     ID: Eq + Hash + Clone + Debug,

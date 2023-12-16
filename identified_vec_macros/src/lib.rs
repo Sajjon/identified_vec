@@ -1,8 +1,6 @@
 #[macro_export]
 macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
-        use identified_vec::IdentifiedVecIntoIterator;
-
         #[derive(Debug, Clone, Eq, PartialEq)]
         pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 
@@ -21,9 +19,16 @@ macro_rules! newtype_identified_vec {
             }
         }
 
+        impl std::fmt::Display for $struct_name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                self.elements().fmt(f)
+            }
+        }
+
         impl IntoIterator for $struct_name {
             type Item = $item_ty;
-            type IntoIter = IdentifiedVecIntoIterator<<$item_ty as Identifiable>::ID, $item_ty>;
+            type IntoIter =
+                identified_vec::IdentifiedVecIntoIterator<<$item_ty as Identifiable>::ID, $item_ty>;
 
             fn into_iter(self) -> Self::IntoIter {
                 Self::IntoIter::new(self.0)

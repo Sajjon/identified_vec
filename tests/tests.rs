@@ -55,7 +55,7 @@ impl Identifiable for User {
     }
 }
 
-type SUT = IdentifiedVecOf<u32>;
+newtype_identified_vec!(of: u32, named: SUT);
 newtype_identified_vec!(of: User, named: Users);
 
 #[test]
@@ -67,14 +67,6 @@ fn new_is_empty() {
 fn ids() {
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.ids(), &[1, 2, 3])
-}
-
-#[test]
-fn debug_str() {
-    let identified_vec = SUT::from_iter([1, 2, 3]);
-    assert!(identified_vec
-        .debug_str()
-        .starts_with("order: [1, 2, 3]\nelements: {"),)
 }
 
 #[test]
@@ -306,6 +298,7 @@ fn append() {
 
 #[test]
 fn try_append_unique_element() {
+    type SUT = IdentifiedVecOf<u32>;
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     let result = identified_vec.try_append_unique_element(4);
     assert!(result.is_ok());
@@ -644,48 +637,12 @@ fn display() {
 
 #[test]
 fn hash() {
+    type SUT = IdentifiedVecOf<u32>;
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
         HashSet::<IdentifiedVec<u32, u32>>::from_iter([identified_vec.clone()]),
         HashSet::from_iter([identified_vec.clone(), identified_vec])
     )
-}
-
-#[test]
-fn isid() {
-    struct CollectionOfUsersVia(IdentifiedVecOf<User>);
-    impl ViaMarker for CollectionOfUsersVia {}
-    impl IsIdentifiableVecOfVia<User> for CollectionOfUsersVia {
-        fn via_mut(&mut self) -> &mut IdentifiedVecOf<User> {
-            &mut self.0
-        }
-        fn via(&self) -> &IdentifiedVecOf<User> {
-            &self.0
-        }
-        fn from_identified_vec_of(identified_vec_of: IdentifiedVecOf<User>) -> Self {
-            Self(identified_vec_of)
-        }
-    }
-    impl IntoIterator for CollectionOfUsersVia {
-        type Item = User;
-
-        type IntoIter = IdentifiedVecIntoIterator<<User as Identifiable>::ID, User>;
-
-        fn into_iter(self) -> Self::IntoIter {
-            todo!()
-        }
-    }
-
-    let mut sut = CollectionOfUsersVia::new();
-    sut.append(User::blob_jr());
-    assert_eq!(sut.items(), [User::blob_jr()]);
-    sut.remove_at(0);
-    assert_eq!(sut.len(), 0);
-    sut.update_or_append(User::blob_sr());
-    sut.update_or_append(User::blob_sr());
-    assert_eq!(sut.items(), [User::blob_sr()]);
-    sut.update_or_append(User::blob_jr());
-    assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }
 
 #[test]
