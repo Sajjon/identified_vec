@@ -119,6 +119,8 @@
 mod conflict_resolution_choice;
 mod errors;
 mod identifiable_trait;
+mod identified_vec_into_iterator;
+mod identified_vec_iterator;
 mod is_identifiable_vec;
 mod is_identifiable_vec_of;
 mod is_identified_vec_via;
@@ -129,6 +131,8 @@ mod vec_of;
 pub mod identified_vec {
     //! A collection of unique identifiable elements which retains **insertion** order.
     pub use crate::conflict_resolution_choice::*;
+    pub use crate::identified_vec_into_iterator::*;
+    pub use crate::identified_vec_iterator::*;
     pub use crate::is_identifiable_vec::*;
     pub use crate::vec::*;
 }

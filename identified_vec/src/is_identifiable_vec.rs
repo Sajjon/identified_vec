@@ -1,5 +1,6 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
 use crate::Error;
+use crate::IdentifiedVecIterator;
 use std::fmt::Debug;
 use std::hash::Hash;
 
@@ -250,4 +251,16 @@ where
     fn remove_at_offsets<It>(&mut self, offsets: It)
     where
         It: IntoIterator<Item = usize>;
+
+    /// Try append a new member to the end of the `identified_vec`, if the `identified_vec` already contains the element a Error will be returned.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`. If the given ID pre-exists within the collection the function call returns `Error::ElementWithSameIDFound`.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error>;
+
+    fn iter(&self) -> IdentifiedVecIterator<ID, Element>;
 }

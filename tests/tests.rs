@@ -53,7 +53,7 @@ impl Identifiable for User {
 }
 
 type SUT = IdentifiedVecOf<u32>;
-type Users = IdentifiedVecOf<User>;
+newtype_identified_vec!(of: User, named: Users);
 
 #[test]
 fn new_is_empty() {
@@ -334,7 +334,7 @@ fn try_append_new_unique_element() {
     assert_eq!(result.unwrap().1, 3);
     assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
 
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -354,7 +354,7 @@ fn try_append_new_unique_element() {
 
 #[test]
 fn try_append_element_with_existing_id() {
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -442,7 +442,7 @@ fn try_update() {
     );
     assert_eq!(identified_vec.items(), [1, 2, 3]);
 
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -634,11 +634,13 @@ fn isid() {
             Self(identified_vec_of)
         }
     }
+    impl IntoIterator for CollectionOfUsersVia {
+        type Item = User;
 
-    impl CollectionOfUsersVia {
-        #[inline]
-        pub fn items(&self) -> Vec<User> {
-            self.0.items()
+        type IntoIter = IdentifiedVecIntoIterator<<User as Identifiable>::ID, User>;
+
+        fn into_iter(self) -> Self::IntoIter {
+            todo!()
         }
     }
 

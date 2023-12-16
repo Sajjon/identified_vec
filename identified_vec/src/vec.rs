@@ -1,5 +1,7 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
 use crate::errors::Error;
+use crate::identified_vec_into_iterator::IdentifiedVecIntoIterator;
+use crate::identified_vec_iterator::IdentifiedVecIterator;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
@@ -644,6 +646,30 @@ where
             internal_offset += 1;
         })
     }
+
+    /// Try append a new member to the end of the `identified_vec`, if the `identified_vec` already contains the element a Error will be returned.
+    ///
+    /// - Parameter item: The element to add to the `identified_vec`.
+    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
+    ///   the operation added a new element, and `index` is the index of `item` in the resulting
+    ///   `identified_vec`. If the given ID pre-exists within the collection the function call returns `Error::ElementWithSameIDFound`.
+    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
+    ///   the `ID` type, if it implements high-quality hashing.
+    #[inline]
+    fn try_append_new(&mut self, element: E) -> Result<(bool, usize), Error> {
+        let id = self.id(&element);
+
+        if self.contains_id(&id) {
+            return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
+        }
+
+        Ok(self.append(element))
+    }
+
+    #[inline]
+    fn iter(&self) -> IdentifiedVecIterator<I, E> {
+        IdentifiedVecIterator::new(self)
+    }
 }
 
 pub trait ItemsCloned<Element>
@@ -671,67 +697,6 @@ where
     }
 }
 
-/// An iterator over the items of an `IdentifiedVec`.
-pub struct IdentifiedVecIterator<'a, I, E>
-where
-    I: Eq + Hash + Clone + Debug,
-{
-    identified_vec: &'a IdentifiedVec<I, E>,
-    index: usize,
-}
-
-impl<'a, I, E> Iterator for IdentifiedVecIterator<'a, I, E>
-where
-    I: Eq + Hash + Clone + Debug,
-{
-    type Item = &'a E;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.index < self.identified_vec.len() {
-            let id = Some(&self.identified_vec.order[self.index]).unwrap();
-            self.index += 1;
-            return self.identified_vec.get(id);
-        } else {
-            None
-        }
-    }
-}
-
-impl<I, E> IdentifiedVec<I, E>
-where
-    I: Eq + Hash + Clone + Debug,
-{
-    pub fn iter(&self) -> IdentifiedVecIterator<I, E> {
-        IdentifiedVecIterator {
-            identified_vec: self,
-            index: 0,
-        }
-    }
-}
-
-/// An owning iterator over the items of an `IdentifiedVec`.
-pub struct IdentifiedVecIntoIterator<I, E>
-where
-    I: Eq + Hash + Clone + Debug,
-{
-    identified_vec: IdentifiedVec<I, E>,
-}
-
-impl<I, E> Iterator for IdentifiedVecIntoIterator<I, E>
-where
-    I: Eq + Hash + Clone + Debug,
-{
-    type Item = E;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.identified_vec.len() == 0 {
-            return None;
-        }
-        let result = self.identified_vec.remove_at(0);
-        Some(result)
-    }
-}
-
 impl<I, E> IntoIterator for IdentifiedVec<I, E>
 where
     I: Eq + Hash + Clone + Debug,
@@ -740,9 +705,7 @@ where
     type IntoIter = IdentifiedVecIntoIterator<I, E>;
 
     fn into_iter(self) -> Self::IntoIter {
-        Self::IntoIter {
-            identified_vec: self,
-        }
+        Self::IntoIter::new(self)
     }
 }
 
@@ -907,30 +870,6 @@ where
             } else {
                 return Err(Error::ElementWithSameIDFound(format!("{:?}", id)));
             }
-        }
-
-        Ok(self.append(element))
-    }
-}
-
-impl<ID, Element> IdentifiedVec<ID, Element>
-where
-    ID: Eq + Hash + Clone + Debug,
-{
-    /// Try append a new member to the end of the `identified_vec`, if the `identified_vec` already contains the element a Error will be returned.
-    ///
-    /// - Parameter item: The element to add to the `identified_vec`.
-    /// - Returns: Either a Ok() with a pair `(inserted, index)`, where `inserted` is a Boolean value indicating whether
-    ///   the operation added a new element, and `index` is the index of `item` in the resulting
-    ///   `identified_vec`. If the given ID pre-exists within the collection the function call returns `Error::ElementWithSameIDFound`.
-    /// - Complexity: The operation is expected to perform O(1) copy, hash, and compare operations on
-    ///   the `ID` type, if it implements high-quality hashing.
-    #[inline]
-    pub fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error> {
-        let id = self.id(&element);
-
-        if self.contains_id(&id) {
-            return Err(Error::ElementWithSameIDFound(format!("{:#?}", id)));
         }
 
         Ok(self.append(element))

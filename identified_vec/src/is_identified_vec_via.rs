@@ -1,12 +1,15 @@
 use crate::conflict_resolution_choice::ConflictResolutionChoice;
+use crate::vec::ItemsCloned;
 use crate::{
-    Error, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf, ItemsCloned,
+    Error, Identifiable, IdentifiedVecIterator, IdentifiedVecOf, IsIdentifiableVec,
+    IsIdentifiableVecOf,
 };
 
 /// https://stackoverflow.com/a/66537661/1311272
 pub trait ViaMarker {}
 
-pub trait IsIdentifiableVecOfVia<Element>: IsIdentifiableVecOf<Element> + ViaMarker
+pub trait IsIdentifiableVecOfVia<Element>:
+    IsIdentifiableVecOf<Element> + IntoIterator<Item = Element> + ViaMarker
 where
     Element: Identifiable,
 {
@@ -174,6 +177,11 @@ where
         self.via_mut().update_with(id, mutate)
     }
 
+    #[inline]
+    fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error> {
+        self.via_mut().try_append_new(element)
+    }
+
     /////////////
     // Remove  //
     /////////////
@@ -198,5 +206,10 @@ where
         It: IntoIterator<Item = usize>,
     {
         self.via_mut().remove_at_offsets(offsets)
+    }
+
+    #[inline]
+    fn iter(&self) -> IdentifiedVecIterator<<Element as Identifiable>::ID, Element> {
+        self.via().iter()
     }
 }
