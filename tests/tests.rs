@@ -89,6 +89,16 @@ fn into_iter() {
 }
 
 #[test]
+fn into_iter_identified_vec() {
+    type Users = IdentifiedVecOf<User>;
+    let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
+    let identified_vec = Users::from_iter(vec.clone());
+    for (idx, element) in identified_vec.into_iter().enumerate() {
+        assert_eq!(vec[idx], element)
+    }
+}
+
+#[test]
 fn iter() {
     let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
     let identified_vec = Users::from_iter(vec.clone());
@@ -395,6 +405,7 @@ fn update_with() {
     sut.append(User::new(2, "Blob, Jr."));
     sut.update_with(&2, |u| u.name.borrow_mut().make_ascii_uppercase());
     assert_eq!(sut.items(), [User::new(2, "BLOB, JR.")]);
+    assert_eq!(sut.update_with(&999, |_| panic!("not called")), false);
 }
 
 #[test]
@@ -544,8 +555,8 @@ fn serde_using_vec() {
 
 #[test]
 fn eq() {
-    #[derive(Eq, PartialEq, Clone, Hash, Debug)]
-    struct Foo {
+    #[derive(Eq, PartialEq, Clone, Hash, Debug, Serialize, Deserialize)]
+    pub struct Foo {
         id: &'static str,
         value: String,
     }
@@ -566,16 +577,17 @@ fn eq() {
     }
 
     // Create `IdentifiedVec` using all of the initializers
-    let mut vecs: Vec<IdentifiedVecOf<Foo>> = vec![
-        IdentifiedVecOf::new(),
-        IdentifiedVecOf::new_identifying_element(|e| e.id()),
-        IdentifiedVecOf::from_iter_select_unique_with([], |_| ConflictResolutionChoice::ChooseLast),
-        IdentifiedVecOf::from_iter_select_unique_ids_with(
+    newtype_identified_vec!(of: Foo, named: SUT);
+    let mut vecs: Vec<SUT> = vec![
+        SUT::new(),
+        SUT::new_identifying_element(|e| e.id()),
+        SUT::from_iter_select_unique_with([], |_| ConflictResolutionChoice::ChooseLast),
+        SUT::from_iter_select_unique_ids_with(
             [],
             |e| e.id(),
             |_| ConflictResolutionChoice::ChooseLast,
         ),
-        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
+        SUT::try_from_iter_select_unique_ids_with(
             [],
             |e: &Foo| e.id(),
             |_| Result::<_, ()>::Ok(ConflictResolutionChoice::ChooseLast),
@@ -584,7 +596,7 @@ fn eq() {
     ];
 
     assert_eq!(
-        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
+        SUT::try_from_iter_select_unique_ids_with(
             [Foo::new(), Foo::new()],
             |e: &Foo| e.id(),
             |_| Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)),
@@ -593,7 +605,7 @@ fn eq() {
     );
 
     assert_eq!(
-        IdentifiedVecOf::try_from_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
+        SUT::try_from_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
             IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
         ),),
         Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))

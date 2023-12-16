@@ -21,7 +21,7 @@ macro_rules! newtype_identified_vec {
 
         impl std::fmt::Display for $struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-                self.elements().fmt(f)
+                std::fmt::Display::fmt(&self.0, f)
             }
         }
 
@@ -47,7 +47,7 @@ macro_rules! newtype_identified_vec {
             where
                 S: Serializer,
             {
-                Vec::serialize(&self.elements(), serializer)
+                IdentifiedVecOf::serialize(&self.0, serializer)
             }
         }
 
@@ -60,13 +60,8 @@ macro_rules! newtype_identified_vec {
             fn deserialize<D: Deserializer<'de>>(
                 deserializer: D,
             ) -> Result<$struct_name, D::Error> {
-                let elements = Vec::<$item_ty>::deserialize(deserializer)?;
-                IdentifiedVecOf::<$item_ty>::try_from_iter_select_unique_with(
-                    elements,
-                    |(idx, _, _)| Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(idx)),
-                )
-                .map(|id_vec_of| Self::from_identified_vec_of(id_vec_of))
-                .map_err(de::Error::custom)
+                let id_vec_of = IdentifiedVecOf::<$item_ty>::deserialize(deserializer)?;
+                return Ok(Self::from_identified_vec_of(id_vec_of));
             }
         }
     };
