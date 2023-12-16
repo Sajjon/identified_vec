@@ -7,7 +7,7 @@ use identified_vec::{
 };
 
 #[cfg(any(test, feature = "serde"))]
-use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 use identified_vec_macros::newtype_identified_vec;
 
