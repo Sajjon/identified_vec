@@ -30,6 +30,7 @@ macro_rules! newtype_identified_vec {
             }
         }
 
+        #[cfg(any(test, feature = "serde"))]
         impl Serialize for $struct_name
         where
             $item_ty: Serialize + Identifiable + Debug + Clone,
@@ -45,6 +46,7 @@ macro_rules! newtype_identified_vec {
             }
         }
 
+        #[cfg(any(test, feature = "serde"))]
         impl<'de> Deserialize<'de> for $struct_name
         where
             $item_ty: Deserialize<'de> + Identifiable + Debug + Clone,

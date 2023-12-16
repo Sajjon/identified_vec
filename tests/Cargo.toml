@@ -5,10 +5,14 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = ["serde"]
+serde = ["dep:serde"]
+
 [dependencies]
 identified_vec = { path = "../identified_vec", features = ["id_prim", "serde"] }
 identified_vec_macros = { path = "../identified_vec_macros" }
-serde = { version = "1.0.193", features = ["derive"] }
+serde = { version = "1.0.193", features = ["derive"], optional = true }
 serde_json = "1.0.108"
 rand = "0.8.5"
 maplit = "1.0.2"

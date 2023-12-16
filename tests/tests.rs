@@ -6,11 +6,13 @@ use identified_vec::{
     ItemsCloned, ViaMarker,
 };
 
+#[cfg(any(test, feature = "serde"))]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 
 use identified_vec_macros::newtype_identified_vec;
 
-#[derive(Eq, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Eq, PartialEq, Clone)]
+#[cfg_attr(any(test, feature = "serde"), derive(Serialize, Deserialize))]
 pub struct User {
     pub id: u16,
     pub name: RefCell<String>,
@@ -507,6 +509,7 @@ fn serde_identified_vec_of() {
     assert!(serde_json::from_str::<SUT>("invalid").is_err(),);
 }
 
+#[cfg(any(test, feature = "serde"))]
 #[test]
 fn serde_is_identified_vec() {
     newtype_identified_vec!(of: u32, named: Ints);
@@ -536,7 +539,7 @@ fn serde_is_identified_vec() {
 }
 
 #[test]
-fn serde_via_vec() {
+fn serde_using_vec() {
     let vec = vec![1, 2, 3];
     let json_from_vec = serde_json::to_value(vec).unwrap();
     let mut identified_vec = serde_json::from_value::<SUT>(json_from_vec).unwrap();
