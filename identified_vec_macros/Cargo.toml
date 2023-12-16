@@ -3,6 +3,18 @@ name = "identified_vec_macros"
 version = "0.1.5"
 edition = "2021"
 authors = ["Alexander Cyon <alex.cyon@gmail.com>"]
+description = "A macro which allows you to create IdentifiedVecOf newtypes which act as if they were IdentifiedVecOf."
+license = "MIT"
+readme = "../README.md"
+repository = "https://github.com/Sajjon/identified_vec"
+keywords = [
+    "identified_vec_of",
+    "newtype_identified_vec",
+    "is_identifiable_vec_of_via",
+    "identifiable",
+    "set",
+]
+categories = ["data-structures"]
 
 [dependencies]
 identified_vec = { path = "../identified_vec" }
