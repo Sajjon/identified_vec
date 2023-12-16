@@ -1,18 +1,22 @@
-#![cfg(feature = "id_prim")]
-
 use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     ConflictResolutionChoice, Error, Identifiable, IdentifiedVec, IdentifiedVecOf,
-    IdentifiedVecOfSerdeFailure,
+    IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf, IsIdentifiableVecOfVia,
+    ItemsCloned, ViaMarker,
 };
 
+#[cfg(any(test, feature = "serde"))]
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
+
+use identified_vec_macros::newtype_identified_vec;
+
 #[derive(Eq, PartialEq, Clone)]
+#[cfg_attr(any(test, feature = "serde"), derive(Serialize, Deserialize))]
 pub struct User {
     pub id: u16,
     pub name: RefCell<String>,
 }
-
 impl User {
     fn new(id: u16, name: &str) -> Self {
         if name.is_empty() {
@@ -51,8 +55,8 @@ impl Identifiable for User {
     }
 }
 
-type SUT = IdentifiedVecOf<u32>;
-type Users = IdentifiedVecOf<User>;
+newtype_identified_vec!(of: u32, named: SUT);
+newtype_identified_vec!(of: User, named: Users);
 
 #[test]
 fn new_is_empty() {
@@ -63,14 +67,6 @@ fn new_is_empty() {
 fn ids() {
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.ids(), &[1, 2, 3])
-}
-
-#[test]
-fn debug_str() {
-    let identified_vec = SUT::from_iter([1, 2, 3]);
-    assert!(identified_vec
-        .debug_str()
-        .starts_with("order: [1, 2, 3]\nelements: {"),)
 }
 
 #[test]
@@ -85,6 +81,16 @@ fn elements() {
 
 #[test]
 fn into_iter() {
+    let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
+    let identified_vec = Users::from_iter(vec.clone());
+    for (idx, element) in identified_vec.into_iter().enumerate() {
+        assert_eq!(vec[idx], element)
+    }
+}
+
+#[test]
+fn into_iter_identified_vec() {
+    type Users = IdentifiedVecOf<User>;
     let vec = vec![User::blob(), User::blob_jr(), User::blob_sr()];
     let identified_vec = Users::from_iter(vec.clone());
     for (idx, element) in identified_vec.into_iter().enumerate() {
@@ -111,12 +117,8 @@ fn get() {
 
     // 1
     let mut id: &u16 = &1;
-    identified_vec
-        .get_mut(id)
-        .unwrap()
-        .name
-        .borrow_mut()
-        .push_str(", Esq.");
+    identified_vec.update_with(id, |u| u.name.borrow_mut().push_str(", Esq."));
+
     assert_eq!(
         identified_vec.get(id),
         Some(&User::new(id.clone(), "Blob, Esq."))
@@ -124,22 +126,12 @@ fn get() {
 
     // 2
     id = &2;
-    identified_vec
-        .get_mut(id)
-        .unwrap()
-        .name
-        .borrow_mut()
-        .drain(4..9);
+    identified_vec.update_with(id, |u| _ = u.name.borrow_mut().drain(4..9));
     assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
 
     // 3
     id = &3;
-    identified_vec
-        .get_mut(id)
-        .unwrap()
-        .name
-        .borrow_mut()
-        .drain(4..9);
+    identified_vec.update_with(id, |u| _ = u.name.borrow_mut().drain(4..9));
     assert_eq!(identified_vec.get(id), Some(&User::new(id.clone(), "Blob")));
 
     identified_vec.remove_by_id(id);
@@ -316,6 +308,7 @@ fn append() {
 
 #[test]
 fn try_append_unique_element() {
+    type SUT = IdentifiedVecOf<u32>;
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     let result = identified_vec.try_append_unique_element(4);
     assert!(result.is_ok());
@@ -347,7 +340,7 @@ fn try_append_new_unique_element() {
     assert_eq!(result.unwrap().1, 3);
     assert_eq!(identified_vec.items(), [1, 2, 3, 4]);
 
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -367,7 +360,7 @@ fn try_append_new_unique_element() {
 
 #[test]
 fn try_append_element_with_existing_id() {
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -404,6 +397,15 @@ fn insert() {
 fn update_at() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(identified_vec.update_at(2, 1), 2)
+}
+
+#[test]
+fn update_with() {
+    let mut sut = Users::new();
+    sut.append(User::new(2, "Blob, Jr."));
+    sut.update_with(&2, |u| u.name.borrow_mut().make_ascii_uppercase());
+    assert_eq!(sut.items(), [User::new(2, "BLOB, JR.")]);
+    assert_eq!(sut.update_with(&999, |_| panic!("not called")), false);
 }
 
 #[test]
@@ -447,7 +449,7 @@ fn try_update() {
     );
     assert_eq!(identified_vec.items(), [1, 2, 3]);
 
-    let mut identified_vec: Users = IdentifiedVecOf::new();
+    let mut identified_vec = Users::new();
     identified_vec.append(User::blob());
     identified_vec.append(User::blob_jr());
     identified_vec.append(User::blob_sr());
@@ -488,7 +490,7 @@ fn remove_at_out_of_bounds() {
 }
 
 #[test]
-fn serde() {
+fn serde_identified_vec_of() {
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
         serde_json::to_value(identified_vec.clone())
@@ -511,8 +513,37 @@ fn serde() {
     assert!(serde_json::from_str::<SUT>("invalid").is_err(),);
 }
 
+#[cfg(any(test, feature = "serde"))]
 #[test]
-fn serde_via_vec() {
+fn serde_is_identified_vec() {
+    newtype_identified_vec!(of: u32, named: Ints);
+
+    let identified_vec = Ints::from_iter([1, 2, 3]);
+    let cloned = identified_vec.clone();
+    assert_eq!(&cloned, &identified_vec);
+    assert_eq!(
+        serde_json::to_value(identified_vec.clone())
+            .and_then(|j| serde_json::from_value::<Ints>(j))
+            .unwrap(),
+        identified_vec
+    );
+    assert_eq!(
+        serde_json::from_str::<Ints>("[1,2,3]").unwrap(),
+        identified_vec
+    );
+    assert_eq!(serde_json::to_string(&identified_vec).unwrap(), "[1,2,3]");
+    assert_eq!(
+        serde_json::from_str::<Ints>("[1,1,1]")
+            .expect_err("should fail")
+            .to_string(),
+        "Duplicate element at offset 1"
+    );
+
+    assert!(serde_json::from_str::<Ints>("invalid").is_err(),);
+}
+
+#[test]
+fn serde_using_vec() {
     let vec = vec![1, 2, 3];
     let json_from_vec = serde_json::to_value(vec).unwrap();
     let mut identified_vec = serde_json::from_value::<SUT>(json_from_vec).unwrap();
@@ -524,8 +555,8 @@ fn serde_via_vec() {
 
 #[test]
 fn eq() {
-    #[derive(Eq, PartialEq, Clone, Hash, Debug)]
-    struct Foo {
+    #[derive(Eq, PartialEq, Clone, Hash, Debug, Serialize, Deserialize)]
+    pub struct Foo {
         id: &'static str,
         value: String,
     }
@@ -546,16 +577,17 @@ fn eq() {
     }
 
     // Create `IdentifiedVec` using all of the initializers
-    let mut vecs: Vec<IdentifiedVecOf<Foo>> = vec![
-        IdentifiedVecOf::new(),
-        IdentifiedVecOf::new_identifying_element(|e| e.id()),
-        IdentifiedVecOf::from_iter_select_unique_with([], |_| ConflictResolutionChoice::ChooseLast),
-        IdentifiedVecOf::from_iter_select_unique_ids_with(
+    newtype_identified_vec!(of: Foo, named: SUT);
+    let mut vecs: Vec<SUT> = vec![
+        SUT::new(),
+        SUT::new_identifying_element(|e| e.id()),
+        SUT::from_iter_select_unique_with([], |_| ConflictResolutionChoice::ChooseLast),
+        SUT::from_iter_select_unique_ids_with(
             [],
             |e| e.id(),
             |_| ConflictResolutionChoice::ChooseLast,
         ),
-        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
+        SUT::try_from_iter_select_unique_ids_with(
             [],
             |e: &Foo| e.id(),
             |_| Result::<_, ()>::Ok(ConflictResolutionChoice::ChooseLast),
@@ -564,7 +596,7 @@ fn eq() {
     ];
 
     assert_eq!(
-        IdentifiedVecOf::try_from_iter_select_unique_ids_with(
+        SUT::try_from_iter_select_unique_ids_with(
             [Foo::new(), Foo::new()],
             |e: &Foo| e.id(),
             |_| Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)),
@@ -573,7 +605,7 @@ fn eq() {
     );
 
     assert_eq!(
-        IdentifiedVecOf::try_from_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
+        SUT::try_from_iter_select_unique_with([Foo::new(), Foo::new()], |_| Err(
             IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1)
         ),),
         Err(IdentifiedVecOfSerdeFailure::DuplicateElementsAtIndex(1))
@@ -617,9 +649,26 @@ fn display() {
 
 #[test]
 fn hash() {
+    type SUT = IdentifiedVecOf<u32>;
     let identified_vec = SUT::from_iter([1, 2, 3]);
     assert_eq!(
         HashSet::<IdentifiedVec<u32, u32>>::from_iter([identified_vec.clone()]),
         HashSet::from_iter([identified_vec.clone(), identified_vec])
     )
+}
+
+#[test]
+fn test_macro() {
+    newtype_identified_vec!(of: User, named: CollectionOfUsers);
+
+    let mut sut = CollectionOfUsers::new();
+    sut.append(User::blob_jr());
+    assert_eq!(sut.items(), [User::blob_jr()]);
+    sut.remove_at(0);
+    assert_eq!(sut.len(), 0);
+    sut.update_or_append(User::blob_sr());
+    sut.update_or_append(User::blob_sr());
+    assert_eq!(sut.items(), [User::blob_sr()]);
+    sut.update_or_append(User::blob_jr());
+    assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }

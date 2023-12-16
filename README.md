@@ -17,7 +17,7 @@ You can create an identified vec with any element type that implements the `Iden
 
 ```rust
 extern crate identified_vec;
-use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf};
+use identified_vec::{IsIdentifiableVec, IdentifiedVec, Identifiable, IdentifiedVecOf};
 use std::cell::RefCell;
 
 #[derive(Eq, PartialEq, Clone, Debug)]
@@ -126,23 +126,6 @@ assert_eq!(
     [
         User::new("u_42", "Tom Mervolo Dolder"),
         User::new("u_1337", "Leia Skywalker"),
-        User::new("u_237", "Marie Curie"),
-    ]
-    .iter()
-    .collect::<Vec<&User>>()
-);
-```
-
-## `get_mut`
-
-```rust
-// or mutate with `get_mut(id)`
-*users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
-assert_eq!(
-    users.elements(),
-    [
-        User::new("u_42", "Tom Mervolo Dolder"),
-        User::new("u_1337", "Yoda"),
         User::new("u_237", "Marie Curie"),
     ]
     .iter()

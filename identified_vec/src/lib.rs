@@ -10,7 +10,7 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable};
 //! use std::cell::RefCell;
 //!
 //! #[derive(Eq, PartialEq, Clone, Debug)]
@@ -104,39 +104,36 @@
 //!     .iter()
 //!     .collect::<Vec<&User>>()
 //! );
-//!
-//! // or mutate with `get_mut(id)`
-//! *users.get_mut(&"u_1337").unwrap().name.get_mut() = "Yoda";
-//! assert_eq!(
-//!     users.elements(),
-//!     [
-//!         User::new("u_42", "Tom Mervolo Dolder"),
-//!         User::new("u_1337", "Yoda"),
-//!         User::new("u_237", "Marie Curie"),
-//!     ]
-//!     .iter()
-//!     .collect::<Vec<&User>>()
-//! );
 //! ```
 //!
 //! Or you can provide a closure that describes an element's identity:
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVec, IdentifiedVec, IdentifiedVecOf, Identifiable};
 //!
 //! // closure which plucks out an ID from an element.
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
+mod conflict_resolution_choice;
+mod errors;
 mod identifiable_trait;
+mod identified_vec_into_iterator;
+mod identified_vec_iterator;
+mod is_identifiable_vec;
+mod is_identifiable_vec_of;
+mod is_identified_vec_via;
 mod primitives_identifiable;
-mod serde_error;
 mod vec;
 mod vec_of;
 
 pub mod identified_vec {
     //! A collection of unique identifiable elements which retains **insertion** order.
+    pub use crate::conflict_resolution_choice::*;
+    pub use crate::identified_vec_into_iterator::*;
+    pub use crate::identified_vec_iterator::*;
+    pub use crate::is_identifiable_vec::*;
     pub use crate::vec::*;
 }
 
@@ -147,13 +144,14 @@ pub mod identified_vec_of {
     //! skip the `id_of_element: fn(&Element) -> ID` closure when
     //! initializing a new identified vec.
     pub use crate::identifiable_trait::*;
+    pub use crate::is_identifiable_vec_of::*;
+    pub use crate::is_identified_vec_via::*;
     pub use crate::vec_of::*;
 
     #[cfg(feature = "id_prim")]
     pub use crate::primitives_identifiable::*;
 
-    #[cfg(feature = "serde")]
-    pub use crate::serde_error::*;
+    pub use crate::errors::*;
 }
 
 pub use crate::identified_vec::*;
