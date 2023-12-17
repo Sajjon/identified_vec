@@ -1,15 +1,11 @@
 use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
-    ConflictResolutionChoice, Error, Identifiable, IdentifiedVec, IdentifiedVecOf,
-    IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf, IsIdentifiableVecOfVia,
-    ItemsCloned, ViaMarker,
+    newtype_identified_vec, ConflictResolutionChoice, Error, Identifiable, IdentifiedVec,
+    IdentifiedVecOf, IdentifiedVecOfSerdeFailure, IsIdentifiedVec, IsIdentifiedVecOf, ItemsCloned,
 };
-
 #[cfg(any(test, feature = "serde"))]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-
-use identified_vec_macros::newtype_identified_vec;
+use serde::{Deserialize, Serialize};
 
 #[derive(Eq, PartialEq, Clone)]
 #[cfg_attr(any(test, feature = "serde"), derive(Serialize, Deserialize))]

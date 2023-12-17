@@ -2,7 +2,7 @@
 //! a newtype wrapping an `IdentifiedVecOf` of the item type
 //! you pass in, but it gets super powers! It implements the
 //! traits `IsIdentifiableVecOfVia`, which implements the trait
-//! `IsIdentifiableVecOf`, meaning that the declared newtype,
+//! `IsIdentifiedVecOf`, meaning that the declared newtype,
 //! gets all the methods and functions of a `IdentifiedVecOf`,
 //! and if you use the `"serde"` feature, it is also
 //! (de)serializable.
@@ -10,9 +10,7 @@
 //! You use it like so:
 //! ```
 //! extern crate identified_vec;
-//! extern crate identified_vec_macros;
-//! use identified_vec_macros::newtype_identified_vec;
-//! use identified_vec::{IsIdentifiableVecOfVia, ViaMarker, IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVecOfVia, ViaMarker, IsIdentifiedVec, IsIdentifiedVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable, newtype_identified_vec};
 //!
 //! newtype_identified_vec!(of: u32, named: Ints);;
 //!
@@ -23,11 +21,11 @@
 #[macro_export]
 macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
-        #[derive(Debug, Clone, Eq, PartialEq)]
+        #[derive(std::fmt::Debug, Clone, Eq, PartialEq)]
         pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 
-        impl ViaMarker for $struct_name {}
-        impl IsIdentifiableVecOfVia<$item_ty> for $struct_name {
+        impl identified_vec::ViaMarker for $struct_name {}
+        impl identified_vec::IsIdentifiableVecOfVia<$item_ty> for $struct_name {
             fn via_mut(&mut self) -> &mut IdentifiedVecOf<$item_ty> {
                 &mut self.0
             }
@@ -49,8 +47,10 @@ macro_rules! newtype_identified_vec {
 
         impl IntoIterator for $struct_name {
             type Item = $item_ty;
-            type IntoIter =
-                identified_vec::IdentifiedVecIntoIterator<<$item_ty as Identifiable>::ID, $item_ty>;
+            type IntoIter = identified_vec::identified_vec_into_iterator::IdentifiedVecIntoIterator<
+                <$item_ty as Identifiable>::ID,
+                $item_ty,
+            >;
 
             fn into_iter(self) -> Self::IntoIter {
                 Self::IntoIter::new(self.0)
@@ -58,31 +58,32 @@ macro_rules! newtype_identified_vec {
         }
 
         #[cfg(any(test, feature = "serde"))]
-        impl Serialize for $struct_name
+        impl serde::Serialize for $struct_name
         where
-            $item_ty: Serialize + Identifiable + Debug + Clone,
+            $item_ty: serde::Serialize + Identifiable + std::fmt::Debug + Clone,
         {
             fn serialize<S>(
                 &self,
                 serializer: S,
-            ) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+            ) -> Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
             where
-                S: Serializer,
+                S: serde::Serializer,
             {
                 IdentifiedVecOf::serialize(&self.0, serializer)
             }
         }
 
         #[cfg(any(test, feature = "serde"))]
-        impl<'de> Deserialize<'de> for $struct_name
+        impl<'de> serde::Deserialize<'de> for $struct_name
         where
-            $item_ty: Deserialize<'de> + Identifiable + Debug + Clone,
+            $item_ty: serde::Deserialize<'de> + Identifiable + std::fmt::Debug + Clone,
         {
             #[cfg(not(tarpaulin_include))] // false negative
-            fn deserialize<D: Deserializer<'de>>(
+            fn deserialize<D: serde::Deserializer<'de>>(
                 deserializer: D,
             ) -> Result<$struct_name, D::Error> {
                 let id_vec_of = IdentifiedVecOf::<$item_ty>::deserialize(deserializer)?;
+                use identified_vec::IsIdentifiableVecOfVia;
                 return Ok(Self::from_identified_vec_of(id_vec_of));
             }
         }

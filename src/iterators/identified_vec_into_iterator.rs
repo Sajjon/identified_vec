@@ -1,7 +1,7 @@
-use crate::is_identifiable_vec::IsIdentifiableVec;
-use crate::vec::IdentifiedVec;
 use std::fmt::Debug;
 use std::hash::Hash;
+
+use crate::{IdentifiedVec, IsIdentifiedVec};
 
 /// An owning iterator over the items of an `IdentifiedVec`.
 pub struct IdentifiedVecIntoIterator<I, E>

@@ -10,7 +10,8 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::identified_vec::*;
+//! use identified_vec::identified_vec_of::*;
 //! use std::cell::RefCell;
 //!
 //! #[derive(Eq, PartialEq, Clone, Debug)]
@@ -110,30 +111,19 @@
 //!
 //! ```
 //! extern crate identified_vec;
-//! use identified_vec::{IsIdentifiableVec, IdentifiedVec, IdentifiedVecOf, Identifiable};
-//!
+//! use identified_vec::identified_vec::*;
+//! use identified_vec::identified_vec_of::*;
 //! // closure which plucks out an ID from an element.
 //! let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 //! ```
 
-mod conflict_resolution_choice;
-mod errors;
-mod identifiable_trait;
-mod identified_vec_into_iterator;
-mod identified_vec_iterator;
-mod is_identifiable_vec;
-mod is_identifiable_vec_of;
-mod is_identified_vec_via;
-mod primitives_identifiable;
+mod iterators;
 mod vec;
 mod vec_of;
 
 pub mod identified_vec {
     //! A collection of unique identifiable elements which retains **insertion** order.
-    pub use crate::conflict_resolution_choice::*;
-    pub use crate::identified_vec_into_iterator::*;
-    pub use crate::identified_vec_iterator::*;
-    pub use crate::is_identifiable_vec::*;
+    pub use crate::iterators::*;
     pub use crate::vec::*;
 }
 
@@ -143,15 +133,7 @@ pub mod identified_vec_of {
     //! `IdentifiedVec<SomeUserID, User>` but also allows you to
     //! skip the `id_of_element: fn(&Element) -> ID` closure when
     //! initializing a new identified vec.
-    pub use crate::identifiable_trait::*;
-    pub use crate::is_identifiable_vec_of::*;
-    pub use crate::is_identified_vec_via::*;
     pub use crate::vec_of::*;
-
-    #[cfg(feature = "id_prim")]
-    pub use crate::primitives_identifiable::*;
-
-    pub use crate::errors::*;
 }
 
 pub use crate::identified_vec::*;

@@ -1,10 +1,9 @@
-use crate::conflict_resolution_choice::ConflictResolutionChoice;
-use crate::Error;
-use crate::IdentifiedVecIterator;
+use crate::iterators::identified_vec_iterator::IdentifiedVecIterator;
+use crate::{ConflictResolutionChoice, Error};
 use std::fmt::Debug;
 use std::hash::Hash;
 
-pub trait IsIdentifiableVec<Element, ID>: Sized
+pub trait IsIdentifiedVec<Element, ID>: Sized
 where
     ID: Eq + Hash + Clone + Debug,
 {
@@ -57,7 +56,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiedVec, IsIdentifiedVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
@@ -188,7 +187,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiedVec, IsIdentifiedVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {

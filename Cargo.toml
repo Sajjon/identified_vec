@@ -1,5 +1,25 @@
-[workspace]
+[package]
+name = "identified_vec"
+version = "0.1.5"
+edition = "2021"
+authors = ["Alexander Cyon <alex.cyon@gmail.com>"]
+description = "Like HashSet but retaining INSERTION order and without `Hash` requirement on the Element type."
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/Sajjon/identified_vec"
+keywords = ["identifiable", "vec", "orderset", "set", "hashset"]
+categories = ["data-structures"]
 
-resolver = "2"
+[features]
+default = ["id_prim"]
+serde = ["dep:serde"]
+id_prim = []
 
-members = ["identified_vec", "identified_vec_macros", "tests"]
+[dependencies]
+serde = { version = "1.0.193", optional = true }
+thiserror = "1.0.50"
+
+[dev-dependencies]
+identified_vec = { path = ".", features = ["id_prim", "serde"] }
+serde = { version = "1.0.193", features = ["derive"] }
+serde_json = "1.0.108"
