@@ -10,9 +10,7 @@
 //! You use it like so:
 //! ```
 //! extern crate identified_vec;
-//! extern crate identified_vec_macros;
-//! use identified_vec_macros::newtype_identified_vec;
-//! use identified_vec::{IsIdentifiableVecOfVia, ViaMarker, IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable};
+//! use identified_vec::{IsIdentifiableVecOfVia, ViaMarker, IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, IdentifiedVecOf, Identifiable, newtype_identified_vec};
 //!
 //! newtype_identified_vec!(of: u32, named: Ints);;
 //!
@@ -23,7 +21,7 @@
 #[macro_export]
 macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
-        #[derive(Debug, Clone, Eq, PartialEq)]
+        #[derive(std::fmt::Debug, Clone, Eq, PartialEq)]
         pub struct $struct_name(IdentifiedVecOf<$item_ty>);
 
         impl ViaMarker for $struct_name {}
@@ -58,28 +56,28 @@ macro_rules! newtype_identified_vec {
         }
 
         #[cfg(any(test, feature = "serde"))]
-        impl Serialize for $struct_name
+        impl serde::Serialize for $struct_name
         where
-            $item_ty: Serialize + Identifiable + Debug + Clone,
+            $item_ty: serde::Serialize + Identifiable + std::fmt::Debug + Clone,
         {
             fn serialize<S>(
                 &self,
                 serializer: S,
-            ) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+            ) -> Result<<S as serde::Serializer>::Ok, <S as serde::Serializer>::Error>
             where
-                S: Serializer,
+                S: serde::Serializer,
             {
                 IdentifiedVecOf::serialize(&self.0, serializer)
             }
         }
 
         #[cfg(any(test, feature = "serde"))]
-        impl<'de> Deserialize<'de> for $struct_name
+        impl<'de> serde::Deserialize<'de> for $struct_name
         where
-            $item_ty: Deserialize<'de> + Identifiable + Debug + Clone,
+            $item_ty: serde::Deserialize<'de> + Identifiable + std::fmt::Debug + Clone,
         {
             #[cfg(not(tarpaulin_include))] // false negative
-            fn deserialize<D: Deserializer<'de>>(
+            fn deserialize<D: serde::Deserializer<'de>>(
                 deserializer: D,
             ) -> Result<$struct_name, D::Error> {
                 let id_vec_of = IdentifiedVecOf::<$item_ty>::deserialize(deserializer)?;

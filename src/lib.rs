@@ -124,6 +124,7 @@ mod identified_vec_iterator;
 mod is_identifiable_vec;
 mod is_identifiable_vec_of;
 mod is_identified_vec_via;
+mod newtype_identified_vec;
 mod primitives_identifiable;
 mod vec;
 mod vec_of;
@@ -152,6 +153,8 @@ pub mod identified_vec_of {
     pub use crate::primitives_identifiable::*;
 
     pub use crate::errors::*;
+
+    pub use crate::newtype_identified_vec::*;
 }
 
 pub use crate::identified_vec::*;
