@@ -1,10 +1,6 @@
-use crate::identifiable_trait::Identifiable;
-use crate::is_identifiable_vec::IsIdentifiableVec;
-use crate::ConflictResolutionChoice;
+use crate::{ConflictResolutionChoice, Identifiable, IsIdentifiedVec};
 
-pub trait IsIdentifiableVecOf<Element: Identifiable>:
-    IsIdentifiableVec<Element, Element::ID>
-{
+pub trait IsIdentifiedVecOf<Element: Identifiable>: IsIdentifiedVec<Element, Element::ID> {
     /// Constructs a new, empty `IdentifiedVec<ID, Element>`, using `id()` on `Element`
     /// as id function.
     fn new() -> Self;

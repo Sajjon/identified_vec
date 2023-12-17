@@ -1,12 +1,12 @@
-use crate::conflict_resolution_choice::ConflictResolutionChoice;
-use crate::errors::Error;
-use crate::identified_vec_into_iterator::IdentifiedVecIntoIterator;
-use crate::identified_vec_iterator::IdentifiedVecIterator;
+use super::ConflictResolutionChoice;
+use crate::iterators::identified_vec_into_iterator::IdentifiedVecIntoIterator;
+use crate::iterators::identified_vec_iterator::IdentifiedVecIterator;
+use crate::Error;
 use std::collections::HashMap;
 use std::fmt::{Debug, Display};
 use std::hash::{Hash, Hasher};
 
-use crate::is_identifiable_vec::IsIdentifiableVec;
+use super::is_identified_vec::IsIdentifiedVec;
 
 /// An ordered collection of identifiable elements.
 ///
@@ -26,7 +26,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// ```
 /// extern crate identified_vec;
-/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiedVec, IsIdentifiedVecOf};
 /// use std::cell::RefCell;
 ///
 /// #[derive(Eq, PartialEq, Clone, Debug)]
@@ -124,7 +124,7 @@ use crate::is_identifiable_vec::IsIdentifiableVec;
 ///
 /// ```
 /// /// extern crate identified_vec;
-/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiableVec, IsIdentifiableVecOf};
+/// use identified_vec::{IdentifiedVec, Identifiable, IdentifiedVecOf, IsIdentifiedVec, IsIdentifiedVecOf};
 ///
 /// let numbers = IdentifiedVec::<u32, u32>::new_identifying_element(|e| *e);
 /// ```
@@ -172,7 +172,7 @@ where
     pub(crate) _id_of_element: fn(&E) -> I,
 }
 
-impl<I, E> IsIdentifiableVec<E, I> for IdentifiedVec<I, E>
+impl<I, E> IsIdentifiedVec<E, I> for IdentifiedVec<I, E>
 where
     I: Eq + Hash + Clone + Debug,
 {
@@ -328,7 +328,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiedVec, IsIdentifiedVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {
@@ -550,7 +550,7 @@ where
     ///
     /// ```
     /// extern crate identified_vec;
-    /// use identified_vec::{IsIdentifiableVec, IsIdentifiableVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
+    /// use identified_vec::{IsIdentifiedVec, IsIdentifiedVecOf, IdentifiedVec, Identifiable, IdentifiedVecOf};
     ///
     /// #[derive(Eq, PartialEq, Clone, Debug, Hash)]
     /// struct User {

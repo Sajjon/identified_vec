@@ -4,15 +4,13 @@ use std::collections::HashMap;
 use std::fmt::Debug;
 
 #[cfg(feature = "serde")]
-use crate::errors::IdentifiedVecOfSerdeFailure;
-use crate::IsIdentifiableVecOf;
-use crate::{
-    conflict_resolution_choice::ConflictResolutionChoice, is_identifiable_vec::IsIdentifiableVec,
-};
-use crate::{identified_vec_of::Identifiable, vec::IdentifiedVec};
+use super::errors::IdentifiedVecOfSerdeFailure;
+use crate::{ConflictResolutionChoice, IdentifiedVec, IsIdentifiedVec, IsIdentifiedVecOf};
 
 #[cfg(feature = "serde")]
 use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+use super::identifiable_trait::Identifiable;
 
 ///////////////////////
 /// IdentifiedVecOf ///
@@ -28,7 +26,7 @@ use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
 /// `Element` implements serde serialization/deserialization of course.
 pub type IdentifiedVecOf<Element> = IdentifiedVec<<Element as Identifiable>::ID, Element>;
 
-impl<Element> IsIdentifiableVecOf<Element> for IdentifiedVecOf<Element>
+impl<Element> IsIdentifiedVecOf<Element> for IdentifiedVecOf<Element>
 where
     Element: Identifiable,
 {

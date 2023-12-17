@@ -2,12 +2,10 @@ use std::{cell::RefCell, collections::HashSet, fmt::Debug, ops::Deref};
 
 use identified_vec::{
     newtype_identified_vec, ConflictResolutionChoice, Error, Identifiable, IdentifiedVec,
-    IdentifiedVecOf, IdentifiedVecOfSerdeFailure, IsIdentifiableVec, IsIdentifiableVecOf,
-    IsIdentifiableVecOfVia, ItemsCloned, ViaMarker,
+    IdentifiedVecOf, IdentifiedVecOfSerdeFailure, IsIdentifiedVec, IsIdentifiedVecOf, ItemsCloned,
 };
-
 #[cfg(any(test, feature = "serde"))]
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Serialize};
 
 #[derive(Eq, PartialEq, Clone)]
 #[cfg_attr(any(test, feature = "serde"), derive(Serialize, Deserialize))]
