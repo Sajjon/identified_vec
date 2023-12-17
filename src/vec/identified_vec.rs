@@ -1,5 +1,5 @@
 use super::ConflictResolutionChoice;
-use crate::iterators::identified_vec_into_iterator::IdentifiedVecIntoIterator;
+use crate::identified_vec_into_iterator::IdentifiedVecIntoIterator;
 use crate::iterators::identified_vec_iterator::IdentifiedVecIterator;
 use crate::Error;
 use std::collections::HashMap;
