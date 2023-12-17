@@ -78,7 +78,8 @@ macro_rules! newtype_identified_vec {
         #[cfg(any(test, feature = "serde"))]
         impl<'de> serde::Deserialize<'de> for $struct_name
         where
-            $item_ty: serde::Deserialize<'de> + Identifiable + std::fmt::Debug + Clone,
+            $item_ty:
+                serde::Deserialize<'de> + identified_vec::Identifiable + std::fmt::Debug + Clone,
         {
             #[cfg(not(tarpaulin_include))] // false negative
             fn deserialize<D: serde::Deserializer<'de>>(
