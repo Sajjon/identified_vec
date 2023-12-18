@@ -120,6 +120,7 @@
 mod iterators;
 mod vec;
 mod vec_of;
+mod via;
 
 pub mod identified_vec {
     //! A collection of unique identifiable elements which retains **insertion** order.
@@ -136,5 +137,10 @@ pub mod identified_vec_of {
     pub use crate::vec_of::*;
 }
 
+pub mod identified_vec_via {
+    pub use crate::via::*;
+}
+
 pub use crate::identified_vec::*;
 pub use crate::identified_vec_of::*;
+pub use crate::identified_vec_via::*;

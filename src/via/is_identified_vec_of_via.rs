@@ -1,9 +1,7 @@
 use crate::{
-    identified_vec_iterator::IdentifiedVecIterator, ConflictResolutionChoice, Error,
-    IsIdentifiedVec, IsIdentifiedVecOf, ItemsCloned,
+    identified_vec_iterator::IdentifiedVecIterator, ConflictResolutionChoice, Error, Identifiable,
+    IdentifiedVecOf, IsIdentifiedVec, IsIdentifiedVecOf, ItemsCloned,
 };
-
-use super::{identifiable_trait::Identifiable, identified_vec_of::IdentifiedVecOf};
 
 /// https://stackoverflow.com/a/66537661/1311272
 pub trait ViaMarker {}
