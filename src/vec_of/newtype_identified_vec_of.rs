@@ -72,7 +72,7 @@ macro_rules! newtype_identified_vec {
         }
 
         paste::paste! {
-        impl<Element: identified_vec::Identifiable> serde::Serialize for [<Proxy $struct_name>]<Element>
+        impl<Element> serde::Serialize for [<Proxy $struct_name>]<Element>
         where
             Element: serde::Serialize + identified_vec::Identifiable + std::fmt::Debug + Clone,
         {
@@ -89,10 +89,10 @@ macro_rules! newtype_identified_vec {
         }
 
         paste::paste! {
-        impl<'de, Element: identified_vec::Identifiable> serde::Deserialize<'de> for [<Proxy $struct_name>]<Element>
+        impl<'de, Element> serde::de::Deserialize<'de> for [<Proxy $struct_name>]<Element>
         where
             Element:
-                serde::Deserialize<'de> + identified_vec::Identifiable + std::fmt::Debug + Clone,
+                serde::de::Deserialize<'de> + identified_vec::Identifiable + std::fmt::Debug + Clone,
         {
             fn deserialize<D: serde::Deserializer<'de>>(
                 deserializer: D,
