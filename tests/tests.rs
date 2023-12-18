@@ -668,3 +668,32 @@ fn test_macro() {
     sut.update_or_append(User::blob_jr());
     assert_eq!(sut.items(), [User::blob_sr(), User::blob_jr()]);
 }
+
+#[test]
+fn macro_not_serde() {
+    #[derive(Eq, PartialEq, Clone, Hash, Debug)]
+    pub struct Foo {
+        id: &'static str,
+        value: String,
+    }
+    impl Foo {
+        fn with(id: &'static str, value: String) -> Self {
+            Self { id, value }
+        }
+        fn new() -> Self {
+            Self::with("id", "value".to_string())
+        }
+    }
+    impl Identifiable for Foo {
+        type ID = &'static str;
+
+        fn id(&self) -> Self::ID {
+            self.id
+        }
+    }
+
+    newtype_identified_vec!(of: Foo, named: Foos);
+    let mut sut = Foos::new();
+    sut.append(Foo::new());
+    assert_eq!(sut.len(), 1);
+}

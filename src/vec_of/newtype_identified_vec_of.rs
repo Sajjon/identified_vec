@@ -21,48 +21,60 @@
 #[macro_export]
 macro_rules! newtype_identified_vec {
     (of: $item_ty: ty, named: $struct_name: ident) => {
-        #[derive(std::fmt::Debug, Clone, Eq, PartialEq)]
-        pub struct $struct_name(identified_vec::IdentifiedVecOf<$item_ty>);
 
-        impl identified_vec::ViaMarker for $struct_name {}
-        impl identified_vec::IsIdentifiableVecOfVia<$item_ty> for $struct_name {
-            fn via_mut(&mut self) -> &mut identified_vec::IdentifiedVecOf<$item_ty> {
+        paste::paste! {
+            #[derive(std::fmt::Debug, Clone, Eq, PartialEq)]
+            pub struct [<Proxy $struct_name>]<Element: identified_vec::Identifiable>(identified_vec::IdentifiedVecOf<Element>);
+        }
+        paste::paste! {
+            impl<Element: identified_vec::Identifiable> identified_vec::ViaMarker for [<Proxy $struct_name>]<Element> {}
+        }
+        paste::paste! {
+        impl<Element: identified_vec::Identifiable> identified_vec::IsIdentifiableVecOfVia<Element> for [<Proxy $struct_name>]<Element> {
+
+            fn via_mut(&mut self) -> &mut identified_vec::IdentifiedVecOf<Element> {
                 &mut self.0
             }
 
-            fn via(&self) -> &identified_vec::IdentifiedVecOf<$item_ty> {
+            fn via(&self) -> &identified_vec::IdentifiedVecOf<Element> {
                 &self.0
             }
 
             fn from_identified_vec_of(
-                identified_vec_of: identified_vec::IdentifiedVecOf<$item_ty>,
+                identified_vec_of: identified_vec::IdentifiedVecOf<Element>,
             ) -> Self {
                 Self(identified_vec_of)
             }
         }
+        }
+        paste::paste! {
+        impl<Element: identified_vec::Identifiable + std::fmt::Debug> std::fmt::Display for [<Proxy $struct_name>]<Element> {
 
-        impl std::fmt::Display for $struct_name {
             fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
                 std::fmt::Display::fmt(&self.0, f)
             }
         }
+        }
 
-        impl IntoIterator for $struct_name {
-            type Item = $item_ty;
+        paste::paste! {
+        impl<Element: identified_vec::Identifiable> IntoIterator for [<Proxy $struct_name>]<Element> {
+
+            type Item = Element;
             type IntoIter = identified_vec::identified_vec_into_iterator::IdentifiedVecIntoIterator<
-                <$item_ty as identified_vec::Identifiable>::ID,
-                $item_ty,
+                <Element as identified_vec::Identifiable>::ID,
+                Element,
             >;
 
             fn into_iter(self) -> Self::IntoIter {
                 Self::IntoIter::new(self.0)
             }
         }
+        }
 
-        #[cfg(any(test, feature = "serde"))]
-        impl serde::Serialize for $struct_name
+        paste::paste! {
+        impl<Element: identified_vec::Identifiable> serde::Serialize for [<Proxy $struct_name>]<Element>
         where
-            $item_ty: serde::Serialize + identified_vec::Identifiable + std::fmt::Debug + Clone,
+            Element: serde::Serialize + identified_vec::Identifiable + std::fmt::Debug + Clone,
         {
             fn serialize<S>(
                 &self,
@@ -74,22 +86,27 @@ macro_rules! newtype_identified_vec {
                 identified_vec::IdentifiedVecOf::serialize(&self.0, serializer)
             }
         }
+        }
 
-        #[cfg(any(test, feature = "serde"))]
-        impl<'de> serde::Deserialize<'de> for $struct_name
+        paste::paste! {
+        impl<'de, Element: identified_vec::Identifiable> serde::Deserialize<'de> for [<Proxy $struct_name>]<Element>
         where
-            $item_ty:
+            Element:
                 serde::Deserialize<'de> + identified_vec::Identifiable + std::fmt::Debug + Clone,
         {
-            #[cfg(not(tarpaulin_include))] // false negative
             fn deserialize<D: serde::Deserializer<'de>>(
                 deserializer: D,
-            ) -> Result<$struct_name, D::Error> {
+            ) -> Result<Self, D::Error> {
                 let id_vec_of =
-                    identified_vec::IdentifiedVecOf::<$item_ty>::deserialize(deserializer)?;
+                    identified_vec::IdentifiedVecOf::<Element>::deserialize(deserializer)?;
                 use identified_vec::IsIdentifiableVecOfVia;
                 return Ok(Self::from_identified_vec_of(id_vec_of));
             }
+        }
+        }
+
+        paste::paste! {
+            pub type $struct_name = [<Proxy $struct_name>]<$item_ty>;
         }
     };
 }

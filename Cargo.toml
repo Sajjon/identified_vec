@@ -16,6 +16,7 @@ serde = ["dep:serde"]
 id_prim = []
 
 [dependencies]
+paste = "1.0.14"
 serde = { version = "1.0.193", optional = true }
 thiserror = "1.0.50"
 
