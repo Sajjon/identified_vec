@@ -473,9 +473,9 @@ where
     /// existing element gets updated by `mutate` closure and this function returns
     /// `true`.
     #[inline]
-    fn update_with<F>(&mut self, id: &I, mutate: F) -> bool
+    fn update_with<F>(&mut self, id: &I, mut mutate: F) -> bool
     where
-        F: Fn(&mut E),
+        F: FnMut(&mut E),
     {
         if !self.contains_id(id) {
             return false;

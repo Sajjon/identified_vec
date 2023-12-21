@@ -169,10 +169,11 @@ where
         self.via_mut().try_update(element)
     }
 
+    #[allow(unused_mut)]
     #[inline]
-    fn update_with<F>(&mut self, id: &<Element as Identifiable>::ID, mutate: F) -> bool
+    fn update_with<F>(&mut self, id: &<Element as Identifiable>::ID, mut mutate: F) -> bool
     where
-        F: Fn(&mut Element),
+        F: FnMut(&mut Element),
     {
         self.via_mut().update_with(id, mutate)
     }

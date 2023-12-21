@@ -143,7 +143,7 @@ where
 
     fn update_with<F>(&mut self, id: &ID, mutate: F) -> bool
     where
-        F: Fn(&mut Element);
+        F: FnMut(&mut Element);
 
     /// Insert a new member to this identified_vec at the specified index, if the identified_vec doesn't already contain
     /// it.
