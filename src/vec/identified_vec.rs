@@ -486,6 +486,22 @@ where
         true
     }
 
+    #[allow(unused_mut)]
+    #[inline]
+    fn try_update_with<F, Er>(&mut self, id: &I, mut mutate: F) -> Result<bool, Er>
+    where
+        F: FnMut(E) -> Result<E, Er>,
+    {
+        if !self.contains_id(id) {
+            return Ok(false);
+        }
+        let mut existing = self.elements.remove(id).expect("Element for existing id");
+        mutate(existing).map(|updated| {
+            self.elements.insert(id.clone(), updated);
+            true
+        })
+    }
+
     /// Try to update the given element to the `identified_vec` if a element with the same ID is already present.
     ///
     /// - Parameter item: The value to append or replace.

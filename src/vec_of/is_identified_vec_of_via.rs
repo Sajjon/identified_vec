@@ -178,6 +178,19 @@ where
         self.via_mut().update_with(id, mutate)
     }
 
+    #[allow(unused_mut)]
+    #[inline]
+    fn try_update_with<F, Er>(
+        &mut self,
+        id: &<Element as Identifiable>::ID,
+        mut mutate: F,
+    ) -> Result<bool, Er>
+    where
+        F: FnMut(Element) -> Result<Element, Er>,
+    {
+        self.via_mut().try_update_with(id, mutate)
+    }
+
     #[inline]
     fn try_append_new(&mut self, element: Element) -> Result<(bool, usize), Error> {
         self.via_mut().try_append_new(element)
