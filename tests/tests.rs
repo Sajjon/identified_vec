@@ -405,6 +405,36 @@ fn update_with() {
 }
 
 #[test]
+fn try_update_with_contains() {
+    let mut sut = Users::new();
+    sut.append(User::new(2, "Blob, Jr."));
+    assert_eq!(
+        sut.try_update_with(&2, |x| {
+            let mut y = x;
+            *y.name.get_mut() = "Junior, Jr.".to_string();
+            Result::<User, ()>::Ok(y)
+        }),
+        Ok(true)
+    );
+    assert_eq!(sut.items(), [User::new(2, "Junior, Jr.")]);
+}
+
+#[test]
+fn try_update_with_not_contains() {
+    let mut sut = Users::new();
+    sut.append(User::new(2, "Blob, Jr."));
+    assert_eq!(
+        sut.try_update_with(&999, |x| {
+            let mut y = x;
+            *y.name.get_mut() = "Will never happen.".to_string();
+            Result::<User, ()>::Ok(y)
+        }),
+        Ok(false)
+    );
+    assert_eq!(sut.items(), [User::new(2, "Blob, Jr.")]);
+}
+
+#[test]
 #[should_panic(expected = "Expected element at index {index}")]
 fn update_at_expect_panic_unknown_index() {
     let mut identified_vec = SUT::from_iter([1, 2, 3]);
