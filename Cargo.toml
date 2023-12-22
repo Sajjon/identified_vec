@@ -1,6 +1,6 @@
 [package]
 name = "identified_vec"
-version = "0.1.10"
+version = "0.1.11"
 edition = "2021"
 authors = ["Alexander Cyon <alex.cyon@gmail.com>"]
 description = "Like HashSet but retaining INSERTION order and without `Hash` requirement on the Element type."
