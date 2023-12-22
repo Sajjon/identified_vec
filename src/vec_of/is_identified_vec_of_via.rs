@@ -186,7 +186,7 @@ where
         mut mutate: F,
     ) -> Result<bool, Er>
     where
-        F: FnMut(Element) -> Result<Element, Er>,
+        F: FnMut(&mut Element) -> Result<Element, Er>,
     {
         self.via_mut().try_update_with(id, mutate)
     }
