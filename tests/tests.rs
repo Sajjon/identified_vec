@@ -435,13 +435,30 @@ fn try_update_with_not_contains() {
 #[test]
 fn try_update_with_failure_does_not_delete_element() {
     let mut sut = Users::new();
+    sut.append(User::new(1, "Blob."));
     sut.append(User::new(2, "Blob, Jr."));
-    assert_eq!(sut.items(), [User::new(2, "Blob, Jr.")]);
+    sut.append(User::new(3, "Blob, Sr."));
+
+    assert_eq!(
+        sut.items(),
+        [
+            User::new(1, "Blob."),
+            User::new(2, "Blob, Jr."),
+            User::new(3, "Blob, Sr.")
+        ]
+    );
 
     assert_eq!(sut.try_update_with(&2, |_| { Err(false) }), Err(false));
 
     // remains unchanged
-    assert_eq!(sut.items(), [User::new(2, "Blob, Jr.")]);
+    assert_eq!(
+        sut.items(),
+        [
+            User::new(1, "Blob."),
+            User::new(2, "Blob, Jr."),
+            User::new(3, "Blob, Sr.")
+        ]
+    );
 }
 
 #[test]
